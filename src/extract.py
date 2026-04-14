@@ -25,7 +25,7 @@ octo = "1210547273"
 api = "https://data.cityofnewyork.us/resource/eabe-havv.csv"
 
 # Hard cap at 10,000
-limit = 1000
+limit = 2000
 
 # the date entered field has a space in it
 order = "'Date Entered' DESC"
