@@ -42,7 +42,7 @@ def runner():
 
     # Defining the location (will need to be updated), file name, message formatting, and level
     logging.basicConfig(
-        filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-transform_runner-log.log",
+        filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-load_runner-log.log",
         format="%(levelname)s %(asctime)s :: %(message)s",
         level=logging.DEBUG,
     )
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         runner()
         # need a better way to do the time
         print(
-            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `transform.runner()` ran in {elapsed_time} seconds"
+            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `load.runner()` ran in {elapsed_time} seconds"
         )
         logging.debug(f"{analyst}: `transform.runner()` ran in {elapsed_time} seconds")
     # Catches any error that crops up; bare `except` clauses are discouraged
