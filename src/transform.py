@@ -69,34 +69,83 @@ def runner():
     ## TO DO: update the SQL function
     #### current script is a placeholder
 
-    with duckdb.connect("../data/cleaned/dob_311.db") as duck:
-        duck.execute("DROP TABLE IF EXISTS dob_311_raw")
-        print(
-            f">> [INFO] {analyst} @ {dt_now}: Dropping table `dob_311_raw` if it exists"
-        )
-        logging.debug(f"{analyst}: Dropping table `dob_311_raw` if it exists")
-        duck.execute(f"CREATE TABLE dob_311_raw AS SELECT * FROM data")
-        print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_raw")
-        logging.debug(f"{analyst}: Created table: dob_311_raw")
-        logging.debug(
-            f"{analyst}: SQL Executed: `CREATE TABLE dob_311_raw AS SELECT * FROM data`"
-        )
+    # Formatting the query
+    transform_query = """
+    CREATE TABLE dob_311_transformed AS
+    SELECT
+        complaint_number AS id,
+        CONCAT(UPPER(LEFT(status, 1)), LOWER(RIGHT(status, LENGTH(status) - 1))) AS status,
+        STRPTIME(CAST(date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
+        complaint_category as comp_category,
+        house_number,
+        house_street,
+        CAST(zip_code AS VARCHAR) as zip,
+        bin,
+        community_board,
+        case when special_district is null then 'No' else special_district end AS special_district,
+        unit as comp_unit,
+        STRPTIME(CAST(disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
+        disposition_code as disp_code,
+        STRPTIME(CAST(inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
+        case when status = 'Active' then NULL else DATEDIFF('day', report_date, insp_date) end AS days_to_insp,
+        STRPTIME(SUBSTR(CAST(dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
+        case when insp_date IS NULL then 'Pending' else 'Resolved' end AS comp_resolution
+    FROM
+        data
+    """
 
+    with duckdb.connect("../data/cleaned/dob_311_trans.db") as duck:
+        duck.execute("DROP TABLE IF EXISTS dob_311_trans")
+        print(
+            f">> [INFO] {analyst} @ {dt_now}: Dropping table `dob_311_trans` if it exists"
+        )
+        logging.debug(f"{analyst}: Dropping table `dob_311_trans` if it exists")
+        duck.execute(
+            """
+            CREATE TABLE dob_311_transformed AS
+                SELECT
+                    complaint_number AS id,
+                    CONCAT(UPPER(LEFT(status, 1)), LOWER(RIGHT(status, LENGTH(status) - 1))) AS status,
+                    STRPTIME(CAST(date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
+                    complaint_category as comp_category,
+                    house_number,
+                    house_street,
+                    CAST(zip_code AS VARCHAR) as zip,
+                    bin,
+                    community_board,
+                    case when special_district is null then 'No' else special_district end AS special_district,
+                    unit as comp_unit,
+                    STRPTIME(CAST(disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
+                    disposition_code as disp_code,
+                    STRPTIME(CAST(inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
+                    case when status = 'Active' then NULL else DATEDIFF('day', report_date, insp_date) end AS days_to_insp,
+                    STRPTIME(SUBSTR(CAST(dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
+                    case when insp_date IS NULL then 'Pending' else 'Resolved' end AS comp_resolution
+                FROM
+                    data
+            """
+        )
+        print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_transformed")
+        logging.debug(f"{analyst}: Created table: dob_311_transformed")
+        logging.debug(f"{analyst}: SQL Executed: ")
+        logging.debug(f"{analyst}: {transform_query}")
     # Defining a connection to the duckdb
-    con = duckdb.connect("../data/cleaned/dob_311.db")
-    print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_raw")
-    logging.debug(f"{analyst}: Connecting to table: dob_311_raw")
+    con = duckdb.connect("../data/cleaned/dob_311_trans.db")
+    print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_transformed")
+    logging.debug(f"{analyst}: Connecting to table: dob_311_transformed")
 
     # Counting the number of rows loaded
-    count = con.execute("SELECT COUNT(*) FROM dob_311_raw").fetchone()[0]
-    print(f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311.db")
-    logging.debug(f"{analyst}: {count} rows loaded into: dob_311.db")
+    count = con.execute("SELECT COUNT(*) FROM dob_311_transformed").fetchone()[0]
+    print(f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311_trans.db")
+    logging.debug(f"{analyst}: {count} rows loaded into: dob_311_trans.db")
 
     con.close()
-    print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/cleaned")
-    logging.debug(f"{analyst}: Database saved to: ../data/cleaned")
-    print(f">> [INFO] {analyst} @ {dt_now}: Closing connection to table: dob_311_raw")
-    logging.debug(f"{analyst}: Closing connection table: dob_311_raw")
+    print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/raw")
+    logging.debug(f"{analyst}: Database saved to: ../data/raw")
+    print(
+        f">> [INFO] {analyst} @ {dt_now}: Closing connection to table: dob_311_transformed"
+    )
+    logging.debug(f"{analyst}: Closing connection table: dob_311_transformed")
 
 
 end_time = time.perf_counter()
