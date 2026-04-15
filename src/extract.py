@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-14
+## Last Updated    : 2026-04-15
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -10,6 +10,7 @@ import os
 import traceback
 import logging
 import datetime
+import time
 import pandas as pd
 import requests as rq
 
@@ -40,6 +41,8 @@ raw_name = "raw_dob_311.csv"
 
 ##### Runner Function #####
 
+start_time = time.perf_counter()
+
 
 def runner():
     """This function connects to NYC Open Data, requests the 311 DoB Complaints data, saves the file, and returns some
@@ -63,7 +66,7 @@ def runner():
 
     # Defining the location (will need to be updated), file name, message formatting, and level
     logging.basicConfig(
-        filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-etl_runner-log.log",
+        filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-extract_runner-log.log",
         format="%(levelname)s %(asctime)s :: %(message)s",
         level=logging.DEBUG,
     )
@@ -134,10 +137,17 @@ def runner():
     return raw_df
 
 
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+
 # Running the extract runner
 if __name__ == "__main__":
     try:
         runner()
+        print(
+            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `extract.runner()` ran in {elapsed_time} seconds"
+        )
+        logging.debug(f"{analyst}: `extract.runner()` ran in {elapsed_time} seconds")
     # Catches any error that crops up; bare `except` clauses are discouraged
     except Exception as ex:
         logging.error(traceback.format_exc())
