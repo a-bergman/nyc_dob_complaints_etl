@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-15
+## Last Updated    : 2026-04-16
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -56,37 +56,89 @@ def runner():
     logging.debug(f"Script Run.....load.py: runner()")
     logging.debug(f"Directory......{os.getcwd()} \n")
 
-    print(f">> [INFO] {analyst} @ {dt_now}: Loading Transformed NYC DoB 311 Data")
-    logging.debug(f"{analyst}: Loading Transformed Raw NYC DoB 311 Data")
+    print(
+        f">> [INFO] {analyst} @ {dt_now}: Beginning to load the transformed NYC DoB 311 data"
+    )
+    logging.debug(f"{analyst}: Beginning to load the transformed NYC DoB 311 data")
 
     ### Creating A duckdb Table ###
 
     # Formatting the query for the log
-    transform_query = """ """
+    load_query = """
+    CREATE TABLE dob_311_clean AS
+        SELECT
+            id,
+            comp_resolution,
+            comp_category,
+            house_number,
+            CONCAT(house_number, ' ', house_street) AS address,
+            zip,
+            bin,
+            community_board,
+            special_district,
+            comp_unit,
+            disp_code,
+            insp_date,
+            days_to_insp
+        FROM trans.dob_311_transformed
+    """
+
+    # Defining the path to the transform db
+    transformed = "../data/raw/dob_311_trans.db"
 
     with duckdb.connect("../data/cleaned/dob_311_clean.db") as duck:
-        duck.execute("DROP TABLE IF EXISTS dob_311_trans")
+        duck.execute("DROP TABLE IF EXISTS dob_311_clean")
         print(
             f">> [INFO] {analyst} @ {dt_now}: Dropping table `dob_311_clean` if it exists"
         )
         logging.debug(f"{analyst}: Dropping table `dob_311_clean` if it exists")
-        duck.execute(""" """)
+        duck.execute(f"ATTACH '{transformed}' AS trans")
+        print(f">> [INFO] {analyst} @ {dt_now}: Attaching table: dob_311_transformed")
+        logging.debug(f"{analyst}: Attaching table: dob_311_transformed")
+        duck.execute(
+            """
+            CREATE TABLE dob_311_clean AS
+                SELECT
+                    id,
+                    comp_resolution,
+                    comp_category,
+                    house_number,
+                    CONCAT(house_number, ' ', house_street) AS address,
+                    zip,
+                    bin,
+                    community_board,
+                    special_district,
+                    comp_unit,
+                    disp_code,
+                    insp_date,
+                    days_to_insp
+                FROM trans.dob_311_transformed
+            """
+        )
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_clean")
         logging.debug(f"{analyst}: Created table: dob_311_clean")
         logging.debug(f"{analyst}: SQL Executed: ")
-        logging.debug(f"{analyst}: {transform_query}")
-    # Defining a connection to the duckdb
-    con = duckdb.connect("../data/cleaned/dob_311_clean.db")
-    print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_clean")
-    logging.debug(f"{analyst}: Connecting to table: dob_311_clean")
+        logging.debug(f"{analyst}: {load_query}")
 
-    # Basic stats
+        # Defining a connection to the duckdb
+        con = duckdb.connect("../data/cleaned/dob_311_clean.db")
+        print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_clean")
+        logging.debug(f"{analyst}: Connecting to table: dob_311_clean")
 
-    con.close()
-    print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/cleaned")
-    logging.debug(f"{analyst}: Database saved to: ../data/cleaned")
-    print(f">> [INFO] {analyst} @ {dt_now}: Closing connection to table: dob_311_clean")
-    logging.debug(f"{analyst}: Closing connection table: dob_311_clean")
+        # Counting the number of rows loaded
+        count = con.execute("SELECT COUNT(*) FROM dob_311_clean").fetchone()[0]
+        print(
+            f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311_clean.db"
+        )
+        logging.debug(f"{analyst}: {count} rows loaded into: dob_311_clean.db")
+
+        con.close()
+        print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/clean")
+        logging.debug(f"{analyst}: Database saved to: ../data/clean")
+        print(
+            f">> [INFO] {analyst} @ {dt_now}: Closing connection to table: dob_311_clean"
+        )
+        logging.debug(f"{analyst}: Closing connection table: dob_311_clean")
 
 
 end_time = time.perf_counter()
