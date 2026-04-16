@@ -89,6 +89,13 @@ def runner():
         case when insp_date IS NULL then 'Pending' else 'Resolved' end AS comp_resolution
     FROM
         data
+    WHERE comp_resolution = 'Resolved'
+        AND id IS NOT NULL
+        AND report_date IS NOT NULL
+        AND house_number IS NOT NULL
+        AND house_street IS NOT NULL
+        AND comp_unit IS NOT NULL
+        AND zip IS NOT NULL
     """
 
     with duckdb.connect("../data/raw/dob_311_trans.db") as duck:
@@ -120,6 +127,13 @@ def runner():
                     case when insp_date IS NULL then 'Pending' else 'Resolved' end AS comp_resolution
                 FROM
                     data
+                WHERE comp_resolution = 'Resolved'
+                    AND id IS NOT NULL
+                    AND report_date IS NOT NULL
+                    AND house_number IS NOT NULL
+                    AND house_street IS NOT NULL
+                    AND comp_unit IS NOT NULL
+                    AND zip IS NOT NULL
             """
         )
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_transformed")
