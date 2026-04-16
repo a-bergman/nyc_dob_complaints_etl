@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-15
+## Last Updated    : 2026-04-16
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -76,7 +76,7 @@ def runner():
         complaint_category as comp_category,
         house_number,
         house_street,
-        CAST(zip_code AS VARCHAR) as zip,
+        SUBSTR(CAST(zip_code AS VARCHAR), 1, 5) AS zip,
         bin,
         community_board,
         case when special_district is null then 'No' else special_district end AS special_district,
@@ -99,7 +99,7 @@ def runner():
     """
 
     with duckdb.connect("../data/raw/dob_311_trans.db") as duck:
-        duck.execute("DROP TABLE IF EXISTS dob_311_trans")
+        duck.execute("DROP TABLE IF EXISTS dob_311_transformed")
         print(
             f">> [INFO] {analyst} @ {dt_now}: Dropping table `dob_311_trans` if it exists"
         )
@@ -114,7 +114,7 @@ def runner():
                     complaint_category as comp_category,
                     house_number,
                     house_street,
-                    CAST(zip_code AS VARCHAR) as zip,
+                    SUBSTR(CAST(zip_code AS VARCHAR), 1, 5) AS zip,
                     bin,
                     community_board,
                     case when special_district is null then 'No' else special_district end AS special_district,
@@ -141,7 +141,7 @@ def runner():
         logging.debug(f"{analyst}: SQL Executed: ")
         logging.debug(f"{analyst}: {transform_query}")
     # Defining a connection to the duckdb
-    con = duckdb.connect("../data/cleaned/dob_311_trans.db")
+    con = duckdb.connect("../data/raw/dob_311_trans.db")
     print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_transformed")
     logging.debug(f"{analyst}: Connecting to table: dob_311_transformed")
 
