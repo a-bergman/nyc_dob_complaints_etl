@@ -117,6 +117,7 @@ def runner():
             CREATE TABLE dob_311_clean AS
                 SELECT
                     id,
+                    report_date,
                     comp_resolution,
                     comp_category,
                     house_number,
@@ -130,6 +131,7 @@ def runner():
                     insp_date,
                     days_to_insp
                 FROM trans.dob_311_transformed
+                WHERE days_to_insp >= 0
             """
         )
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_clean")
@@ -147,41 +149,6 @@ def runner():
         )
         logging.debug(f"{analyst}: {count} rows loaded into: dob_311_clean.db")
 
-        ### Calculating Top Complaints ###
-
-        complaint_query = """
-                SELECT comp_category, COUNT(*) AS count
-                FROM dob_311_clean
-                GROUP BY comp_category
-                ORDER BY count DESC
-                LIMIT 10
-            """
-
-        print(f">> [INFO] {analyst} @ {dt_now}: Calculating most frequent complaints")
-        top_comp = duck.execute(
-            """ SELECT comp_category, COUNT(*) AS count
-                                    FROM dob_311_clean
-                                    GROUP BY comp_category
-                                    ORDER BY count DESC
-                                    LIMIT 5
-                                """
-        ).df()
-        data_tab = [
-            [i, cat, total]
-            for i, (cat, total) in enumerate(
-                zip(top_comp["comp_category"], top_comp["count"]), start=1
-            )
-        ]
-        generate_table(data_tab, headers=["Rank", "Complaint Type", "Count"])
-
-        logging.debug(f"{analyst}: Executed SQL: {complaint_query}")
-
-        ### Calculating Days To Inspection By Complaint ###
-
-        ### Calculating Complaints By Zip Code###
-
-        ### Calculating Days To Inspection By Complaint ###
-
         duck.close()
         print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/clean")
         logging.debug(f"{analyst}: Database saved to: ../data/clean")
@@ -193,6 +160,7 @@ def runner():
 
 end_time = time.perf_counter()
 elapsed_time = end_time - start_time
+
 
 # Running the transform runner
 if __name__ == "__main__":
