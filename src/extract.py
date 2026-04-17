@@ -122,19 +122,38 @@ def runner():
         print(f">> [ERROR] {analyst} @ {dt_now}: {raw_dir} is not a directory")
         logging.debug(f"[ERROR] {analyst} : {raw_dir} is not a directory")
 
+    ### Mapping complaint codes to a description from NYC DoB ###
+
+    # Reading a csv in that has code:description
+    comp_names = pd.read_csv("../data/raw/nyc_311_dob_comp_codes.csv")
+
+    # Converting the .csv file into a dictionary for mapping
+    comp_dict = dict(zip(comp_names["comp_code"], comp_names["desc"]))
+
     ### Printing Confirmation ###
 
-    raw_df = pd.read_csv(os.path.join(raw_dir, raw_name))
+    raw_df = pd.read_csv("../data/raw/raw_dob_311.csv")
     print(
         f">> [INFO] {analyst} @ {dt_now}: Extraction Successful: {raw_df.shape[0]} rows and {raw_df.shape[1]} columns of data"
     )
     logging.debug(
         f"{analyst}: Extraction Successful: {raw_df.shape[0]} rows and {raw_df.shape[1]} columns of data"
     )
-    print(f">> [INFO] {analyst} @ {dt_now}: `{raw_name}` saved in: /{raw_dir}/")
-    logging.debug(f"{analyst}: `{raw_name}` saved in: /{raw_dir}/")
-
-    return raw_df
+    # Mapping code to description
+    raw_df["complaint_description"] = raw_df["complaint_category"].map(
+        comp_dict, na_action="ignore"
+    )
+    raw_df.to_csv("../data/raw/dob_311_extract.csv")
+    print(
+        f">> [INFO] {analyst} @ {dt_now}: Created new column `comp_desc`; mapped codes to NYC DoB description"
+    )
+    logging.debug(
+        f"{analyst}: `{raw_name}` Created new column `comp_desc`; mapped codes to NYC DoB description"
+    )
+    print(
+        f">> [INFO] {analyst} @ {dt_now}: `dob_311_extract.csv` saved in: /{raw_dir}/"
+    )
+    logging.debug(f"{analyst}: `dob_311_extract.csv` saved in: /{raw_dir}/")
 
 
 end_time = time.perf_counter()
