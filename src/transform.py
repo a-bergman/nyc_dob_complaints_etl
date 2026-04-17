@@ -60,9 +60,9 @@ def runner():
     ### Creating A duckdb Table ###
 
     # Defining the path to the raw data from the extract step
-    data = pd.read_csv("../data/raw/raw_dob_311.csv")
+    data = pd.read_csv("../data/raw/dob_311_extract.csv")
     print(
-        f">> [INFO] {analyst} @ {dt_now}: Loading raw data from: ../data/raw/raw_dob_311.csv"
+        f">> [INFO] {analyst} @ {dt_now}: Loading raw data from: ../data/raw/dob_311_extract.csv"
     )
     logging.debug(f"{analyst}: Loading raw data from: ../data/raw/raw_dob_311.csv")
 
@@ -74,6 +74,7 @@ def runner():
         CONCAT(UPPER(LEFT(status, 1)), LOWER(RIGHT(status, LENGTH(status) - 1))) AS status,
         STRPTIME(CAST(date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
         complaint_category as comp_category,
+        complaint_description AS description,
         house_number,
         house_street,
         SUBSTR(CAST(zip_code AS VARCHAR), 1, 5) AS zip,
@@ -112,6 +113,7 @@ def runner():
                     CONCAT(UPPER(LEFT(status, 1)), LOWER(RIGHT(status, LENGTH(status) - 1))) AS status,
                     STRPTIME(CAST(date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
                     complaint_category as comp_category,
+                    complaint_description AS description,
                     house_number,
                     house_street,
                     SUBSTR(CAST(zip_code AS VARCHAR), 1, 5) AS zip,
