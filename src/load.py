@@ -134,8 +134,7 @@ def runner():
         )
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_clean")
         logging.debug(f"{analyst}: Created table: dob_311_clean")
-        logging.debug(f"{analyst}: SQL Executed: ")
-        logging.debug(f"{analyst}: {load_query}")
+        logging.debug(f"{analyst}: SQL Executed: {load_query}")
 
         # Defining a connection to the duckdb
         print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_clean")
