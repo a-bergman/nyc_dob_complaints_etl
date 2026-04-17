@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-15
+## Last Updated    : 2026-04-17
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -26,7 +26,7 @@ octo = "1210547273"
 api = "https://data.cityofnewyork.us/resource/eabe-havv.csv"
 
 # Hard cap at 10,000
-limit = 2000
+limit = 10000
 
 # the date entered field has a space in it
 order = "'Date Entered' DESC"
