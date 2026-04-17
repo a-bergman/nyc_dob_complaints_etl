@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-16
+## Last Updated    : 2026-04-17
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -13,6 +13,7 @@ import os
 import traceback
 import time
 import pandas as pd
+import tabulate as tb
 
 ##### User Analyst #####
 
@@ -21,6 +22,26 @@ analyst = "andrew.bergman"
 
 # Unique ID obtained by opening inspector and searching for "octolytics-dimension-repository_id"
 octo = "1210547273"
+
+##### Helper Function #####
+
+
+def generate_table(data, headers):
+    """
+    Parameters:
+    -----------
+    headers : list of str column header names for the table : list : :
+    data    : list of var data to be included in the table  : list : :
+
+    Description:
+    ------------
+    Takes the formatted measure statements from the above functions and creates a table for display
+
+    Returns:
+    A formatted table in the command line showing the values extracted from the JSON object
+    """
+    print(tb.tabulate(data, headers=headers, tablefmt="outline"))
+
 
 ##### Runner Function #####
 
@@ -117,18 +138,52 @@ def runner():
         logging.debug(f"{analyst}: {load_query}")
 
         # Defining a connection to the duckdb
-        con = duckdb.connect("../data/cleaned/dob_311_clean.db")
         print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_clean")
         logging.debug(f"{analyst}: Connecting to table: dob_311_clean")
 
-        # Counting the number of rows loaded
-        count = con.execute("SELECT COUNT(*) FROM dob_311_clean").fetchone()[0]
+        ### Counting the number of rows loaded ###
+        count = duck.execute("SELECT COUNT(*) FROM dob_311_clean").fetchone()[0]
         print(
             f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311_clean.db"
         )
         logging.debug(f"{analyst}: {count} rows loaded into: dob_311_clean.db")
 
-        con.close()
+        ### Calculating Top Complaints ###
+
+        complaint_query = """
+                SELECT comp_category, COUNT(*) AS count
+                FROM dob_311_clean
+                GROUP BY comp_category
+                ORDER BY count DESC
+                LIMIT 10
+            """
+
+        print(f">> [INFO] {analyst} @ {dt_now}: Calculating most frequent complaints")
+        top_comp = duck.execute(
+            """ SELECT comp_category, COUNT(*) AS count
+                                    FROM dob_311_clean
+                                    GROUP BY comp_category
+                                    ORDER BY count DESC
+                                    LIMIT 5
+                                """
+        ).df()
+        data_tab = [
+            [i, cat, total]
+            for i, (cat, total) in enumerate(
+                zip(top_comp["comp_category"], top_comp["count"]), start=1
+            )
+        ]
+        generate_table(data_tab, headers=["Rank", "Complaint Type", "Count"])
+
+        logging.debug(f"{analyst}: Executed SQL: {complaint_query}")
+
+        ### Calculating Days To Inspection By Complaint ###
+
+        ### Calculating Complaints By Zip Code###
+
+        ### Calculating Days To Inspection By Complaint ###
+
+        duck.close()
         print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/clean")
         logging.debug(f"{analyst}: Database saved to: ../data/clean")
         print(
