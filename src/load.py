@@ -26,10 +26,6 @@ octo = "1210547273"
 
 start_time = time.perf_counter()
 
-##### Runner Function #####
-
-start_time = time.perf_counter()
-
 
 def runner():
 
@@ -150,7 +146,7 @@ if __name__ == "__main__":
         runner()
         # need a better way to do the time
         print(
-            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `load.runner()` ran in {elapsed_time} seconds"
+            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `load.runner()` ran in {round(elapsed_time,5)} seconds"
         )
         logging.debug(f"{analyst}: `load.runner()` ran in {elapsed_time} seconds")
     # Catches any error that crops up; bare `except` clauses are discouraged
