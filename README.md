@@ -7,22 +7,40 @@ Exploring Department of Buildings (DOB) complaints using NYC Open Data.
 ```
 nyc_dob_complaints_etl/
 ├─ data/
-│  ├─ clean             # Cleaned data & db files (ignored))
-│  ├─ raw               # Raw data from NYC Open Data (ignored)
+│  ├─ clean                                  # Cleaned data & db files (ignored))
+│  ├─ raw                                    # Raw data from NYC Open Data (ignored)
 │  ├─ README.md
 ├─ src/
-│  ├─ dob_etl_runner.py # Runs the entire pipeline
-│  ├─ extract.py        # Extracts data from NYC Open Data
-│  ├─ transform.py      # Transforms & cleans data using DuckDB SQL
-│  ├─ load.py           # Loads clean data into DuckDB table
+│  ├─ dob_etl_runner.py                      # Runs the entire pipeline
+│  ├─ extract.py                             # Extracts data from NYC Open Data
+│  ├─ transform.py                           # Transforms & cleans data using DuckDB SQL
+│  ├─ load.py                                # Loads clean data into DuckDB table
 ├─ .gitignore
 ├─ README.md
+├─ data_dictionary.md                        # Description of data layout from NYC Open Data
+├─ NYC_DoB_311_Complaint_Codes_Dictionary.md # Descriptions of NYC DoB Complaint Codes
 ```
 
 ## Description
 
 ## Requirements
 
-## Pipeline Steps
+`datetime`
 
-## Data Source
+`duckdb`
+
+`logging`
+
+`os`
+
+`pandas`
+
+`requests`
+
+`traceback`
+
+`time`
+
+# Data Source
+
+The [data](https://data.cityofnewyork.us/Housing-Development/DOB-Complaints-Received/eabe-havv/about_data) for this project comes from NYC's Open Data [portal](https://opendata.cityofnewyork.us/).
