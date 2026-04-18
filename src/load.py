@@ -85,10 +85,10 @@ def runner():
     CREATE TABLE dob_311_clean AS
         SELECT
             id,
+            report_date,
             comp_resolution,
             comp_category,
             description,
-            house_number,
             CONCAT(house_number, ' ', house_street) AS address,
             zip,
             bin,
@@ -122,7 +122,6 @@ def runner():
                     comp_resolution,
                     comp_category,
                     description,
-                    house_number,
                     CONCAT(house_number, ' ', house_street) AS address,
                     zip,
                     bin,
