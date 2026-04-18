@@ -62,7 +62,7 @@ def pipeline_runner():
 
     try:
 
-        # Extract - Step 1
+        ########## Extract - Step 1 ##########
         print(f">> [INFO] {analyst} @ {dt_now}: Beginning pipeline step 1 - extraction")
         logging.debug(
             f"{analyst}: Beginning pipeline step 1 - extraction - `extract.runner()`"
@@ -75,7 +75,7 @@ def pipeline_runner():
             f"{analyst}: Completed pipeline step 1 - extraction - `extract.runner()` \n"
         )
 
-        # Transform - Step 2
+        ########## Transform - Step 2 ##########
         print(f">> [INFO] {analyst} @ {dt_now}: Beginning pipeline step 2 - transform")
         logging.debug(
             f"{analyst}: Beginning pipeline step 2 - transform - `transform.runner()`"
@@ -88,7 +88,7 @@ def pipeline_runner():
             f"{analyst}: Completed pipeline step 2 - transform - `transform.runner()` \n"
         )
 
-        # Load - Step 3
+        ########## Load - Step 3 ##########
         print(f">> [INFO] {analyst} @ {dt_now}: Beginning pipeline step 3 - load")
         logging.debug(f"{analyst}: Beginning pipeline step 3 - load - `load.runner()`")
         load.runner()
@@ -121,7 +121,9 @@ if __name__ == "__main__":
         print(
             f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `dob_etl_runner.pipeline_runner()` ran in {round(elapsed_time,10)} seconds"
         )
-        logging.debug(f"{analyst}: `load.runner()` ran in {elapsed_time} seconds")
+        logging.debug(
+            f"{analyst}: `dob_etl_runner.runner()` ran in {elapsed_time} seconds"
+        )
     # Catches any error that crops up; bare `except` clauses are discouraged
     except Exception as ex:
         logging.error(traceback.format_exc())

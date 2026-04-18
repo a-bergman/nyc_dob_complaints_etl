@@ -87,6 +87,7 @@ def runner():
             id,
             comp_resolution,
             comp_category,
+            description,
             house_number,
             CONCAT(house_number, ' ', house_street) AS address,
             zip,
@@ -120,6 +121,7 @@ def runner():
                     report_date,
                     comp_resolution,
                     comp_category,
+                    description,
                     house_number,
                     CONCAT(house_number, ' ', house_street) AS address,
                     zip,
@@ -142,7 +144,7 @@ def runner():
         print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_clean")
         logging.debug(f"{analyst}: Connecting to table: dob_311_clean")
 
-        ### Counting the number of rows loaded ###
+        ##### Counting the number of rows loaded #####
         count = duck.execute("SELECT COUNT(*) FROM dob_311_clean").fetchone()[0]
         print(
             f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311_clean.db"
