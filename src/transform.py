@@ -13,6 +13,7 @@ import os
 import traceback
 import time
 import pandas as pd
+from pathlib import Path
 
 ##### User Analyst #####
 
@@ -21,6 +22,20 @@ analyst = "andrew.bergman"
 
 # Unique ID obtained by opening inspector and searching for "octolytics-dimension-repository_id"
 octo = "1210547273"
+
+##### Directories & Files #####
+
+raw_dir = "../data/raw"
+
+raw_name = "raw_dob_311.csv"
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+RAW_DATA = PROJECT_ROOT / "data" / "raw" / "dob_311_extract.csv"
+
+RAW_EXTRACT = PROJECT_ROOT / "data" / "raw" / "dob_311_trans.db"
+
+DESC_PATH = PROJECT_ROOT / "data" / "raw" / "nyc_311_dob_comp_codes.csv"
 
 ##### Runner Function #####
 
@@ -44,27 +59,27 @@ def runner():
     logging.basicConfig(
         filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-transform_runner-log.log",
         format="%(levelname)s %(asctime)s :: %(message)s",
-        level=logging.DEBUG,
+        level=logging.INFO,
     )
     # Basic information about who ran this, when, and where
-    logging.debug(f"Day............{today} @ {str(datetime.datetime.now())[11:16]}")
-    logging.debug(f"Analyst........{analyst}")
-    logging.debug(f"Script Run.....transform.py: runner()")
-    logging.debug(f"Directory......{os.getcwd()} \n")
+    logging.info(f"Day............{today} @ {str(datetime.datetime.now())[11:16]}")
+    logging.info(f"Analyst........{analyst}")
+    logging.info(f"Script Run.....transform.py: runner()")
+    logging.info(f"Directory......{os.getcwd()} \n")
 
     print(
         f">> [INFO] {analyst} @ {dt_now}: Beginning Transformation Of Raw NYC DoB 311 Data"
     )
-    logging.debug(f"{analyst}: Beginning Transformation Of Raw NYC DoB 311 Data")
+    logging.info(f"{analyst}: Beginning Transformation Of Raw NYC DoB 311 Data")
 
     ### Creating A duckdb Table ###
 
     # Defining the path to the raw data from the extract step
-    data = pd.read_csv("../data/raw/dob_311_extract.csv")
+    data = pd.read_csv(RAW_DATA)
     print(
         f">> [INFO] {analyst} @ {dt_now}: Loading raw data from: ../data/raw/dob_311_extract.csv"
     )
-    logging.debug(f"{analyst}: Loading raw data from: ../data/raw/raw_dob_311.csv")
+    logging.info(f"{analyst}: Loading raw data from: ../data/raw/raw_dob_311.csv")
 
     # Formatting the query for the log
     transform_query = """
@@ -99,12 +114,12 @@ def runner():
         AND zip IS NOT NULL
     """
 
-    with duckdb.connect("../data/raw/dob_311_trans.db") as duck:
+    with duckdb.connect(RAW_EXTRACT) as duck:
         duck.execute("DROP TABLE IF EXISTS dob_311_transformed")
         print(
             f">> [INFO] {analyst} @ {dt_now}: Dropping table `dob_311_trans` if it exists"
         )
-        logging.debug(f"{analyst}: Dropping table `dob_311_trans` if it exists")
+        logging.info(f"{analyst}: Dropping table `dob_311_trans` if it exists")
         duck.execute(
             """
             CREATE TABLE dob_311_transformed AS
@@ -139,25 +154,25 @@ def runner():
             """
         )
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_transformed")
-        logging.debug(f"{analyst}: Created table: dob_311_transformed")
-        logging.debug(f"{analyst}: SQL Executed: {transform_query}")
+        logging.info(f"{analyst}: Created table: dob_311_transformed")
+        logging.info(f"{analyst}: SQL Executed: {transform_query}")
     # Defining a connection to the duckdb
-    con = duckdb.connect("../data/raw/dob_311_trans.db")
+    con = duckdb.connect(RAW_EXTRACT)
     print(f">> [INFO] {analyst} @ {dt_now}: Connecting to table: dob_311_transformed")
-    logging.debug(f"{analyst}: Connecting to table: dob_311_transformed")
+    logging.info(f"{analyst}: Connecting to table: dob_311_transformed")
 
     # Counting the number of rows loaded
     count = con.execute("SELECT COUNT(*) FROM dob_311_transformed").fetchone()[0]
     print(f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311_trans.db")
-    logging.debug(f"{analyst}: {count} rows loaded into: dob_311_trans.db")
+    logging.info(f"{analyst}: {count} rows loaded into: dob_311_trans.db")
 
     con.close()
     print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/raw")
-    logging.debug(f"{analyst}: Database saved to: ../data/raw")
+    logging.info(f"{analyst}: Database saved to: ../data/raw")
     print(
         f">> [INFO] {analyst} @ {dt_now}: Closing connection to table: dob_311_transformed"
     )
-    logging.debug(f"{analyst}: Closing connection table: dob_311_transformed")
+    logging.info(f"{analyst}: Closing connection table: dob_311_transformed")
 
 
 end_time = time.perf_counter()
@@ -171,7 +186,7 @@ if __name__ == "__main__":
         print(
             f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `transform.runner()` ran in {elapsed_time} seconds"
         )
-        logging.debug(f"{analyst}: `transform.runner()` ran in {elapsed_time} seconds")
+        logging.info(f"{analyst}: `transform.runner()` ran in {elapsed_time} seconds")
     # Catches any error that crops up; bare `except` clauses are discouraged
     except Exception as ex:
         logging.error(traceback.format_exc())
