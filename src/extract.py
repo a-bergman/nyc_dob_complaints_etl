@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-17
+## Last Updated    : 2026-04-21
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -18,7 +18,7 @@ from pathlib import Path
 ##### User Analyst #####
 
 # User will need to update
-analyst = "andrew.bergman"
+analyst = "etl-extract"
 
 # Unique ID obtained by opening inspector and searching for "octolytics-dimension-repository_id"
 octo = "1210547273"
@@ -81,24 +81,17 @@ def runner():
         format="%(levelname)s %(asctime)s :: %(message)s",
         level=logging.INFO,
     )
-    # Basic information about who ran this, when, and where
-    logging.info(f"Day............{today} @ {str(datetime.datetime.now())[11:16]}")
-    logging.info(f"Analyst........{analyst}")
-    logging.info(f"Script Run.....extract.py: runner()")
-    logging.info(f"Directory......{os.getcwd()} \n")
 
-    print(f">> [INFO] {analyst} @ {dt_now}: Beginning Extraction Of NYC Open Data...")
-    logging.info(f"{analyst}: Beginning Extraction For NYC Open Data...")
+    print(f">> [INFO] {analyst} @ {dt_now}: Beginning Extraction Of NYC Open Data")
+    logging.info(f"{analyst}: Beginning Extraction For NYC Open Data")
 
     ### Connection ###
 
     # Requesting data from NYC Open Data
     # In the `try`/`except`` to catch connection/http errors
     try:
-        print(
-            f">> [INFO] {analyst} @ {dt_now}: Making a request to NYC Open Data......."
-        )
-        logging.info(f"{analyst}: Making a request to NYC Open Data........")
+        print(f">> [INFO] {analyst} @ {dt_now}: Making a request to NYC Open Data")
+        logging.info(f"{analyst}: Making a request to NYC Open Data")
         # Analyst will need to update parameters above if needed; timeout set to 60 seconds
         response = rq.get(url=api, params=api_params, timeout=60)
         response.raise_for_status()
