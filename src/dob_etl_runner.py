@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-17
+## Last Updated    : 2026-04-21
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -13,13 +13,13 @@ import datetime
 import logging
 import time
 import traceback
+
 from . import extract
 from . import transform
 from . import load
 
-
 # User will need to update
-analyst = "andrew.bergman"
+analyst = "etl-pipeline_runner"
 
 # Unique ID obtained by opening inspector and searching for "octolytics-dimension-repository_id"
 octo = "1210547273"
@@ -50,13 +50,6 @@ def pipeline_runner():
         format="%(levelname)s %(asctime)s :: %(message)s",
         level=logging.INFO,
     )
-    # Basic information about who ran this, when, and where
-    logging.info(f"Day............{today} @ {str(datetime.datetime.now())[11:16]}")
-    logging.info(f"Analyst........{analyst}")
-    logging.info(
-        f"Script Run.....dob_etl_runner.py: dob_etl_runner.pipeline_runner(), extract.runner(), transform.runner(), load.runner()"
-    )
-    logging.info(f"Directory......{os.getcwd()} \n")
 
     print(f">> [INFO] {analyst} @ {dt_now}: Beginning NYC DoB 311 ETL pipeline \n")
     logging.info(f"{analyst}: Beginning NYC DoB 311 ETL pipeline \n")
