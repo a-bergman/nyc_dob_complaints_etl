@@ -179,9 +179,16 @@ def runner():
     logging.info(f"{analyst}: Connecting to table: dob_311_transformed")
 
     # Counting the number of rows loaded
-    count = con.execute("SELECT COUNT(*) FROM dob_311_transformed").fetchone()[0]
-    print(f">> [INFO] {analyst} @ {dt_now}: {count} rows loaded into: dob_311_trans.db")
-    logging.info(f"{analyst}: {count} rows loaded into: dob_311_trans.db")
+    rows = con.execute("SELECT COUNT(*) FROM dob_311_transformed").fetchone()[0]
+    cols = con.execute(
+        "SELECT COUNT(*) AS column_count FROM information_schema.columns WHERE table_name = 'dob_311_transformed'"
+    ).fetchone()[0]
+    print(
+        f">> [INFO] {analyst} @ {dt_now}: {rows} rows and {cols} columns loaded into: dob_311_trans.db"
+    )
+    logging.info(
+        f"{analyst}: {rows} rows and {cols} columns rows loaded into: dob_311_trans.db"
+    )
 
     con.close()
     print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/raw")
