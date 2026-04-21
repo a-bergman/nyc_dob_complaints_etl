@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-16
+## Last Updated    : 2026-04-21
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -12,28 +12,28 @@ import logging
 import os
 import traceback
 import time
+
 import pandas as pd
+
 from pathlib import Path
 
 ##### User Analyst #####
 
 # User will need to update
-analyst = "andrew.bergman"
+analyst = "etl-transform"
 
 # Unique ID obtained by opening inspector and searching for "octolytics-dimension-repository_id"
 octo = "1210547273"
 
 ##### Directories & Files #####
 
-raw_dir = "../data/raw"
-
-raw_name = "raw_dob_311.csv"
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 RAW_DATA = PROJECT_ROOT / "data" / "raw" / "dob_311_extract.csv"
 
 RAW_EXTRACT = PROJECT_ROOT / "data" / "raw" / "dob_311_trans.db"
+
+RAW_BOROUGH = PROJECT_ROOT / "data" / "raw" / "borough_map.db"
 
 DESC_PATH = PROJECT_ROOT / "data" / "raw" / "nyc_311_dob_comp_codes.csv"
 
@@ -61,12 +61,6 @@ def runner():
         format="%(levelname)s %(asctime)s :: %(message)s",
         level=logging.INFO,
     )
-    # Basic information about who ran this, when, and where
-    logging.info(f"Day............{today} @ {str(datetime.datetime.now())[11:16]}")
-    logging.info(f"Analyst........{analyst}")
-    logging.info(f"Script Run.....transform.py: runner()")
-    logging.info(f"Directory......{os.getcwd()} \n")
-
     print(
         f">> [INFO] {analyst} @ {dt_now}: Beginning Transformation Of Raw NYC DoB 311 Data"
     )
@@ -81,37 +75,48 @@ def runner():
     )
     logging.info(f"{analyst}: Loading raw data from: ../data/raw/raw_dob_311.csv")
 
-    # Formatting the query for the log
     transform_query = """
-    CREATE TABLE dob_311_transformed AS
+    CREATE TABLE dob_311_transformed AS    
+    WITH borough_map AS (SELECT '1' AS code, 'Manhattan' AS borough UNION ALL
+                         SELECT '2', 'Bronx' UNION ALL
+                         SELECT '3', 'Brooklyn' UNION ALL
+                         SELECT '4', 'Queens' UNION ALL
+                         SELECT '5', 'Staten Island')
     SELECT
-        complaint_number AS id,
-        CONCAT(UPPER(LEFT(status, 1)), LOWER(RIGHT(status, LENGTH(status) - 1))) AS status,
-        STRPTIME(CAST(date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
-        complaint_category as comp_category,
-        complaint_description AS description,
-        house_number,
-        house_street,
-        SUBSTR(CAST(zip_code AS VARCHAR), 1, 5) AS zip,
-        bin,
-        community_board,
-        case when special_district is null then 'No' else special_district end AS special_district,
-        unit as comp_unit,
-        STRPTIME(CAST(disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
-        disposition_code as disp_code,
-        STRPTIME(CAST(inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
-        case when status = 'Active' then NULL else DATEDIFF('day', report_date, insp_date) end AS days_to_insp,
-        STRPTIME(SUBSTR(CAST(dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
-        case when insp_date IS NULL then 'Pending' else 'Resolved' end AS comp_resolution
-    FROM
-        data
-    WHERE comp_resolution = 'Resolved'
-        AND id IS NOT NULL
-        AND report_date IS NOT NULL
-        AND house_number IS NOT NULL
-        AND house_street IS NOT NULL
-        AND comp_unit IS NOT NULL
-        AND zip IS NOT NULL
+        d.complaint_number AS id,
+        m.borough,
+        CONCAT(UPPER(LEFT(d.status, 1)), LOWER(SUBSTR(d.status, 2))) AS status,
+        STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
+        d.complaint_category AS comp_category,
+        d.complaint_description AS description,
+        d.house_number,
+        d.house_street,
+        SUBSTR(CAST(d.zip_code AS VARCHAR), 1, 5) AS zip,
+        d.bin,
+        d.community_board,
+        CASE WHEN d.special_district IS NULL THEN 'No' ELSE d.special_district END AS special_district,
+        d.unit AS comp_unit,
+        STRPTIME(CAST(d.disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
+        d.disposition_code AS disp_code,
+        STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
+        CASE WHEN d.status = 'Active' 
+                THEN NULL ELSE DATEDIFF('day',
+                                STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y'),
+                                STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y'))
+                END AS days_to_insp,
+        STRPTIME(SUBSTR(CAST(d.dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
+        CASE WHEN d.inspection_date IS NULL THEN 'Pending' ELSE 'Resolved' END AS comp_resolution
+    FROM data AS d
+    LEFT JOIN borough_map AS m
+        ON SUBSTRING(CAST(d.complaint_number AS TEXT), 1, 1) = m.code
+    WHERE
+        d.complaint_number IS NOT NULL
+        AND d.date_entered IS NOT NULL
+        AND d.house_number IS NOT NULL
+        AND d.house_street IS NOT NULL
+        AND d.unit IS NOT NULL
+        AND d.zip_code IS NOT NULL
+        AND d.inspection_date IS NOT NULL;
     """
 
     with duckdb.connect(RAW_EXTRACT) as duck:
@@ -122,35 +127,47 @@ def runner():
         logging.info(f"{analyst}: Dropping table `dob_311_trans` if it exists")
         duck.execute(
             """
-            CREATE TABLE dob_311_transformed AS
-                SELECT
-                    complaint_number AS id,
-                    CONCAT(UPPER(LEFT(status, 1)), LOWER(RIGHT(status, LENGTH(status) - 1))) AS status,
-                    STRPTIME(CAST(date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
-                    complaint_category as comp_category,
-                    complaint_description AS description,
-                    house_number,
-                    house_street,
-                    SUBSTR(CAST(zip_code AS VARCHAR), 1, 5) AS zip,
-                    bin,
-                    community_board,
-                    case when special_district is null then 'No' else special_district end AS special_district,
-                    unit as comp_unit,
-                    STRPTIME(CAST(disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
-                    disposition_code as disp_code,
-                    STRPTIME(CAST(inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
-                    case when status = 'Active' then NULL else DATEDIFF('day', report_date, insp_date) end AS days_to_insp,
-                    STRPTIME(SUBSTR(CAST(dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
-                    case when insp_date IS NULL then 'Pending' else 'Resolved' end AS comp_resolution
-                FROM
-                    data
-                WHERE comp_resolution = 'Resolved'
-                    AND id IS NOT NULL
-                    AND report_date IS NOT NULL
-                    AND house_number IS NOT NULL
-                    AND house_street IS NOT NULL
-                    AND comp_unit IS NOT NULL
-                    AND zip IS NOT NULL
+            CREATE TABLE dob_311_transformed AS    
+            WITH borough_map AS (SELECT '1' AS code, 'Manhattan' AS borough UNION ALL
+                                    SELECT '2', 'Bronx' UNION ALL
+                                    SELECT '3', 'Brooklyn' UNION ALL
+                                    SELECT '4', 'Queens' UNION ALL
+                                    SELECT '5', 'Staten Island')
+            SELECT
+                d.complaint_number AS id,
+                m.borough,
+                CONCAT(UPPER(LEFT(d.status, 1)), LOWER(SUBSTR(d.status, 2))) AS status,
+                STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
+                d.complaint_category AS comp_category,
+                d.complaint_description AS description,
+                d.house_number,
+                d.house_street,
+                SUBSTR(CAST(d.zip_code AS VARCHAR), 1, 5) AS zip,
+                d.bin,
+                d.community_board,
+                CASE WHEN d.special_district IS NULL THEN 'No' ELSE d.special_district END AS special_district,
+                d.unit AS comp_unit,
+                STRPTIME(CAST(d.disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
+                d.disposition_code AS disp_code,
+                STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
+                CASE WHEN d.status = 'Active' 
+                        THEN NULL ELSE DATEDIFF('day',
+                                        STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y'),
+                                        STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y'))
+                        END AS days_to_insp,
+                STRPTIME(SUBSTR(CAST(d.dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
+                CASE WHEN d.inspection_date IS NULL THEN 'Pending' ELSE 'Resolved' END AS comp_resolution
+            FROM data AS d
+            LEFT JOIN borough_map AS m
+                ON SUBSTRING(CAST(d.complaint_number AS TEXT), 1, 1) = m.code
+            WHERE
+                d.complaint_number IS NOT NULL
+                AND d.date_entered IS NOT NULL
+                AND d.house_number IS NOT NULL
+                AND d.house_street IS NOT NULL
+                AND d.unit IS NOT NULL
+                AND d.zip_code IS NOT NULL
+                AND d.inspection_date IS NOT NULL;
             """
         )
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_transformed")
