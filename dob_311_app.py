@@ -31,6 +31,40 @@ CLEAN_DIR = PROJECT_ROOT / "data" / "cleaned"
 
 CLEAN_DATA = PROJECT_ROOT / "data" / "cleaned" / "dob_311_clean.db"
 
+##### Analysis Queries ################################################
+
+sql_query_1 = """"
+    SELECT 
+        borough AS Borough,
+        COUNT(*) AS Total,
+        ROUND(AVG(days_to_insp)) AS 'Average Response (Days)' 
+    FROM dob_311_clean
+    GROUP BY borough
+    ORDER BY borough ASC"
+"""
+
+sql_most_common_complaints = f"""
+    SELECT 
+        comp_category AS 'Complaint Code', 
+        description AS Description, 
+        COUNT(*) AS Total 
+    FROM dob_311_clean 
+    GROUP BY comp_category, description
+    ORDER BY Total DESC
+    LIMIT {'limit'}
+"""
+
+sql_least_common_complaints = f"""
+    SELECT 
+        comp_category AS 'Complaint Code', 
+        description AS Description, 
+        COUNT(*) AS Total 
+    FROM dob_311_clean 
+    GROUP BY comp_category, description
+    ORDER BY Total ASC
+    LIMIT {'limit'}
+"""
+
 ##### Datetime Info ###################################################
 
 # Getting the date in YYYY-MM-DD format &
@@ -140,7 +174,84 @@ with st.container(border=True):
             con = db_connect()
             st.success("Connected to `dob_311_clean.db`")
             st.write("Database is ready for queries and analysis")
-            logging.info(f"{analyst}: Connected to `dob_311_clean.db`")
+            logging.info(f"{analyst}: Connected to `dob_311_clean.db` \n")
+            logging.info(f"{analyst}: Preparing to run analysis queries \n")
+
+            ##### Running Analysis Queries ##################################
+
+            ##### SQL Query: Complaints & Mean Response Per Borough #########
+
+            st.subheader("Total Number of Complaints And Mean Response By Borough")
+
+            query_1 = con.execute(
+                """SELECT 
+                    borough AS Borough,
+                    COUNT(*) AS Total,
+                   ROUND(AVG(days_to_insp)) AS 'Average Response (Days)' 
+                   FROM dob_311_clean
+                   GROUP BY borough
+                   ORDER BY borough ASC
+                """
+            ).df()
+            logging.info(
+                f"{analyst}: Calculating total number of complaints and mean response by borough"
+            )
+            logging.info(f"{analyst}: SQL Executed: {sql_query_1}")
+            st.dataframe(query_1, hide_index=True)
+
+            ##### SQL Query: Most Common Complaints ##############################
+
+            st.subheader("Most Common Complaints")
+
+            limit = st.slider("Count", 5, 10)
+
+            sql_most_common_complaints = con.execute(
+                f"""
+                SELECT 
+                    comp_category AS 'Complaint Code', 
+                    description AS Description, 
+                    COUNT(*) AS Total 
+                FROM dob_311_clean 
+                GROUP BY comp_category, description
+                ORDER BY Total DESC
+                LIMIT {limit}
+            """
+            )
+            logging.info(f"{analyst}: Calculating the {limit} most common complaints")
+            logging.info(f"{analyst}: SQL Executed: {sql_most_common_complaints}")
+            st.dataframe(sql_most_common_complaints, hide_index=True)
+
+            ##### SQL Query: Least Common Complaints ##############################
+
+            st.subheader("Least Common Complaints")
+
+            sql_most_common_complaints = con.execute(
+                f"""
+                SELECT 
+                    comp_category AS 'Complaint Code', 
+                    description AS Description, 
+                    COUNT(*) AS Total 
+                FROM dob_311_clean 
+                GROUP BY comp_category, description
+                ORDER BY Total ASC
+                LIMIT {limit}
+            """
+            )
+            logging.info(f"{analyst}: Calculating the {limit} least common complaints")
+            logging.info(f"{analyst}: SQL Executed: {sql_least_common_complaints}")
+            st.dataframe(sql_most_common_complaints, hide_index=True)
+
+            ##### SQL Query: 10 Fastest Complaints To Inspection ##################
+
+            ##### SQL Query: 10 Slowest Complaints To Inspection ##################
+
+            ##### SQL Query: Top Fastest Days To Inspection Per Zip Code ##########
+
+            ##### SQL Query: Bottom Fastest Days To Inspection Per Zip Code #######
+
+            ##### SQL Query: Top 10 Most Number Of Complaints Per Zip Code ########
+
+            ##### SQL Query: Bottom 10 Most Number Of Complaints Per Zip Code #####
 
         except Exception as ex:
             st.error("Failed to connect to database")
@@ -148,22 +259,6 @@ with st.container(border=True):
             logging.error(f"{analyst}: Failed to connect to `dob_311_clean.db`")
 
     else:
-        st.info("Run the pipeline first to enable database connection")
-
-##### SQL Query: Complaints Per Borough ###############################
-
-##### SQL Query: Most Common Complaints ###############################
-
-##### SQL Query: Least Common Complaints ##############################
-
-##### SQL Query: 10 Fastest Complaints To Inspection ##################
-
-##### SQL Query: 10 Slowest Complaints To Inspection ##################
-
-##### SQL Query: Top Fastest Days To Inspection Per Zip Code ##########
-
-##### SQL Query: Bottom Fastest Days To Inspection Per Zip Code #######
-
-##### SQL Query: Top 10 Most Number Of Complaints Per Zip Code ########
-
-##### SQL Query: Bottom 10 Most Number Of Complaints Per Zip Code #####
+        st.info(
+            "Run the pipeline first to enable database connection & perform analyses"
+        )
