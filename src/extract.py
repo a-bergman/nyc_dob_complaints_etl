@@ -50,6 +50,8 @@ RAW_EXTRACT = PROJECT_ROOT / "data" / "raw" / "dob_311_extract.csv"
 
 DESC_PATH = PROJECT_ROOT / "data" / "raw" / "nyc_311_dob_comp_codes.csv"
 
+BIS_PATH = PROJECT_ROOT / "data" / "raw" / "bis_complaint_disposition_codes.csv"
+
 ##### Runner Function #####
 
 start_time = time.perf_counter()
@@ -128,11 +130,21 @@ def runner():
 
     ### Mapping complaint codes to a description from NYC DoB ###
 
-    # Reading a csv in that has code:description
+    # Reading in description .CSVs
     comp_names = pd.read_csv(DESC_PATH)
+    logging.info(f"{analyst}: Reading .CSV with complaint code descriptions")
+    bis_names = pd.read_csv(BIS_PATH)
+    logging.info(f"{analyst}: Reading .CSV with BIS disposition code descriptions")
 
-    # Converting the .csv file into a dictionary for mapping
+    # Converting the .CSVs into dictionaries for mapping
     comp_dict = dict(zip(comp_names["comp_code"], comp_names["desc"]))
+    logging.info(
+        f"{analyst}: Converting complaint code description .CSV to dictionary for mapping"
+    )
+    bis_dict = dict(zip(bis_names["Code"], bis_names["Description"]))
+    logging.info(
+        f"{analyst}: Converting BIS disposition code description .CSV to dictionary for mapping"
+    )
 
     ### Printing Confirmation ###
 
@@ -143,9 +155,19 @@ def runner():
     logging.info(
         f"{analyst}: Extraction Successful: {raw_df.shape[0]} rows and {raw_df.shape[1]} columns of data"
     )
-    # Mapping code to description
+    # Mapping complaint code to a description
     raw_df["complaint_description"] = raw_df["complaint_category"].map(
         comp_dict, na_action="ignore"
+    )
+    logging.info(
+        f"{analyst}: Successfully created column `complaint_description`: mapped complaint code to a description"
+    )
+    # Mapping BIS disposition code to a description
+    raw_df["bis_description"] = raw_df["disposition_code"].map(
+        bis_dict, na_action="ignore"
+    )
+    logging.info(
+        f"{analyst}: Successfully created column `bis_description`: mapped BIS disposition code to a description"
     )
     raw_df.to_csv(RAW_EXTRACT)
     print(

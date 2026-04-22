@@ -98,6 +98,7 @@ def runner():
         d.unit AS comp_unit,
         STRPTIME(CAST(d.disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
         d.disposition_code AS disp_code,
+        d.bis_description as disp_description,
         STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
         CASE WHEN d.status = 'Active' 
                 THEN NULL ELSE DATEDIFF('day',
@@ -149,6 +150,7 @@ def runner():
                 d.unit AS comp_unit,
                 STRPTIME(CAST(d.disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
                 d.disposition_code AS disp_code,
+                d.bis_description as disp_description,
                 STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
                 CASE WHEN d.status = 'Active' 
                         THEN NULL ELSE DATEDIFF('day',

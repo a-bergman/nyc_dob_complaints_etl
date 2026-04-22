@@ -100,11 +100,12 @@ def runner():
             special_district,
             comp_unit,
             disp_code,
+            disp_description,
             insp_date,
             days_to_insp
         FROM transformed.dob_311_transformed
     """
-    logging.info(f"{RAW_TRANSFORMED}")
+    logging.info(f"{analyst}: Loading transformed data from `dob_311_trans.db`")
     with duckdb.connect(CLEAN_DATA) as duck:
         duck.execute("DROP TABLE IF EXISTS dob_311_clean")
         print(
@@ -131,6 +132,7 @@ def runner():
                     special_district,
                     comp_unit,
                     disp_code,
+                    disp_description,
                     insp_date,
                     days_to_insp
                 FROM trans.dob_311_transformed
