@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-21
+## Last Updated    : 2026-04-22
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -104,6 +104,7 @@ def runner():
             insp_date,
             days_to_insp
         FROM transformed.dob_311_transformed
+        WHERE days_to_insp >= 0
     """
     logging.info(f"{analyst}: Loading transformed data from `dob_311_trans.db`")
     with duckdb.connect(CLEAN_DATA) as duck:
