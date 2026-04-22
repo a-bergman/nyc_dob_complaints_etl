@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-21
+## Last Updated    : 2026-04-22
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -33,7 +33,7 @@ CLEAN_DATA = PROJECT_ROOT / "data" / "cleaned" / "dob_311_clean.db"
 
 ##### Analysis Queries ################################################
 
-sql_query_1 = """"
+sql_query_1 = """
     SELECT 
         borough AS Borough,
         COUNT(*) AS Total,
@@ -43,7 +43,7 @@ sql_query_1 = """"
     ORDER BY borough ASC"
 """
 
-sql_most_common_complaints = f"""
+sql_most_common_comp = f"""
     SELECT 
         comp_category AS 'Complaint Code', 
         description AS Description, 
@@ -51,10 +51,10 @@ sql_most_common_complaints = f"""
     FROM dob_311_clean 
     GROUP BY comp_category, description
     ORDER BY Total DESC
-    LIMIT {'limit'}
+    LIMIT X
 """
 
-sql_least_common_complaints = f"""
+sql_least_common_comp = f"""
     SELECT 
         comp_category AS 'Complaint Code', 
         description AS Description, 
@@ -62,7 +62,27 @@ sql_least_common_complaints = f"""
     FROM dob_311_clean 
     GROUP BY comp_category, description
     ORDER BY Total ASC
-    LIMIT {'limit'}
+    LIMIT X
+"""
+
+sql_fastest_insp = f"""
+    SELECT
+        comp_category AS 'Complaint Code',
+        description AS Description,
+        days_to_insp AS 'Days To Inspection' 
+    FROM dob_311_clean 
+    ORDER BY days_to_insp ASC
+    LIMIT X
+"""
+
+sql_slowest_insp = f"""
+    SELECT
+        comp_category AS 'Complaint Code',
+        description AS Description,
+        days_to_insp AS 'Days To Inspection' 
+    FROM dob_311_clean 
+    ORDER BY days_to_insp DESC
+    LIMIT X
 """
 
 ##### Datetime Info ###################################################
@@ -183,7 +203,7 @@ with st.container(border=True):
 
             st.subheader("Total Number of Complaints And Mean Response By Borough")
 
-            query_1 = con.execute(
+            query_total_avg_resp = con.execute(
                 """SELECT 
                     borough AS Borough,
                     COUNT(*) AS Total,
@@ -197,7 +217,7 @@ with st.container(border=True):
                 f"{analyst}: Calculating total number of complaints and mean response by borough"
             )
             logging.info(f"{analyst}: SQL Executed: {sql_query_1}")
-            st.dataframe(query_1, hide_index=True)
+            st.dataframe(query_total_avg_resp, hide_index=True)
 
             ##### SQL Query: Most Common Complaints ##############################
 
@@ -205,7 +225,7 @@ with st.container(border=True):
 
             limit = st.slider("Count", 5, 10)
 
-            sql_most_common_complaints = con.execute(
+            query_most_common_comp = con.execute(
                 f"""
                 SELECT 
                     comp_category AS 'Complaint Code', 
@@ -218,14 +238,14 @@ with st.container(border=True):
             """
             )
             logging.info(f"{analyst}: Calculating the {limit} most common complaints")
-            logging.info(f"{analyst}: SQL Executed: {sql_most_common_complaints}")
-            st.dataframe(sql_most_common_complaints, hide_index=True)
+            logging.info(f"{analyst}: SQL Executed: {sql_most_common_comp}")
+            st.dataframe(query_most_common_comp, hide_index=True)
 
             ##### SQL Query: Least Common Complaints ##############################
 
             st.subheader("Least Common Complaints")
 
-            sql_most_common_complaints = con.execute(
+            query_least_common_comp = con.execute(
                 f"""
                 SELECT 
                     comp_category AS 'Complaint Code', 
@@ -238,12 +258,46 @@ with st.container(border=True):
             """
             )
             logging.info(f"{analyst}: Calculating the {limit} least common complaints")
-            logging.info(f"{analyst}: SQL Executed: {sql_least_common_complaints}")
-            st.dataframe(sql_most_common_complaints, hide_index=True)
+            logging.info(f"{analyst}: SQL Executed: {sql_least_common_comp}")
+            st.dataframe(query_least_common_comp, hide_index=True)
 
             ##### SQL Query: 10 Fastest Complaints To Inspection ##################
 
+            st.subheader("Fastest Time To An Inspection Per Complaint")
+
+            query_fastest_insp = con.execute(
+                f"""SELECT
+                        comp_category AS 'Complaint Code',
+                        description AS Description,
+                        days_to_insp AS 'Days To Inspection' 
+                    FROM dob_311_clean 
+                    ORDER BY days_to_insp ASC
+                    LIMIT {limit}"""
+            ).df()
+            logging.info(
+                f"{analyst}: Calculating the {limit} fastest times to inspection per complaint"
+            )
+            logging.info(f"{analyst}: SQL Executed: {sql_fastest_insp}")
+            st.dataframe(query_fastest_insp, hide_index=True)
+
             ##### SQL Query: 10 Slowest Complaints To Inspection ##################
+
+            st.subheader("Slowest Time To An Inspection Per Complaint")
+
+            query_slowest_insp = con.execute(
+                f"""SELECT
+                        comp_category AS 'Complaint Code',
+                        description AS Description,
+                        days_to_insp AS 'Days To Inspection' 
+                    FROM dob_311_clean 
+                    ORDER BY days_to_insp DESC
+                    LIMIT {limit}"""
+            ).df()
+            logging.info(
+                f"{analyst}: Calculating the {limit} fastest times to inspection per complaint"
+            )
+            logging.info(f"{analyst}: SQL Executed: {sql_slowest_insp}")
+            st.dataframe(query_slowest_insp, hide_index=True)
 
             ##### SQL Query: Top Fastest Days To Inspection Per Zip Code ##########
 
