@@ -94,19 +94,24 @@ def runner():
         SUBSTR(CAST(d.zip_code AS VARCHAR), 1, 5) AS zip,
         d.bin,
         d.community_board,
-        CASE WHEN d.special_district IS NULL THEN 'No' ELSE d.special_district END AS special_district,
+        CASE WHEN d.special_district IS NULL THEN 'No' 
+                ELSE d.special_district 
+                END AS special_district,
         d.unit AS comp_unit,
         STRPTIME(CAST(d.disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
         d.disposition_code AS disp_code,
         d.bis_description as disp_description,
         STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
-        CASE WHEN d.status = 'Active' 
-                THEN NULL ELSE DATEDIFF('day',
-                                STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y'),
-                                STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y'))
+        CASE WHEN d.status = 'Active' THEN NULL 
+                ELSE DATEDIFF('day', STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y'),
+                                     STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y'))
                 END AS days_to_insp,
         STRPTIME(SUBSTR(CAST(d.dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
-        CASE WHEN d.inspection_date IS NULL THEN 'Pending' ELSE 'Resolved' END AS comp_resolution
+        CASE WHEN d.inspection_date IS NULL THEN 'Pending' ELSE 'Resolved' END AS comp_resolution,
+        CASE WHEN d.disposition_code = 'I2'THEN 'No Violation'
+             WHEN d.disposition_code = 'XX' THEN 'Other'
+             ELSE 'Violation'
+             END AS action
     FROM data AS d
     LEFT JOIN borough_map AS m
         ON SUBSTRING(CAST(d.complaint_number AS TEXT), 1, 1) = m.code
@@ -126,52 +131,8 @@ def runner():
             f">> [INFO] {analyst} @ {dt_now}: Dropping table `dob_311_trans` if it exists"
         )
         logging.info(f"{analyst}: Dropping table `dob_311_trans` if it exists")
-        duck.execute(
-            """
-            CREATE TABLE dob_311_transformed AS    
-            WITH borough_map AS (SELECT '1' AS code, 'Manhattan' AS borough UNION ALL
-                                    SELECT '2', 'Bronx' UNION ALL
-                                    SELECT '3', 'Brooklyn' UNION ALL
-                                    SELECT '4', 'Queens' UNION ALL
-                                    SELECT '5', 'Staten Island')
-            SELECT
-                d.complaint_number AS id,
-                m.borough,
-                CONCAT(UPPER(LEFT(d.status, 1)), LOWER(SUBSTR(d.status, 2))) AS status,
-                STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y') AS report_date,
-                d.complaint_category AS comp_category,
-                d.complaint_description AS description,
-                d.house_number,
-                d.house_street,
-                SUBSTR(CAST(d.zip_code AS VARCHAR), 1, 5) AS zip,
-                d.bin,
-                d.community_board,
-                CASE WHEN d.special_district IS NULL THEN 'No' ELSE d.special_district END AS special_district,
-                d.unit AS comp_unit,
-                STRPTIME(CAST(d.disposition_date AS VARCHAR), '%m/%d/%Y') AS disp_date,
-                d.disposition_code AS disp_code,
-                d.bis_description as disp_description,
-                STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y') AS insp_date,
-                CASE WHEN d.status = 'Active' 
-                        THEN NULL ELSE DATEDIFF('day',
-                                        STRPTIME(CAST(d.date_entered AS VARCHAR), '%m/%d/%Y'),
-                                        STRPTIME(CAST(d.inspection_date AS VARCHAR), '%m/%d/%Y'))
-                        END AS days_to_insp,
-                STRPTIME(SUBSTR(CAST(d.dobrundate AS VARCHAR), 1, 8), '%Y%m%d') AS run_date,
-                CASE WHEN d.inspection_date IS NULL THEN 'Pending' ELSE 'Resolved' END AS comp_resolution
-            FROM data AS d
-            LEFT JOIN borough_map AS m
-                ON SUBSTRING(CAST(d.complaint_number AS TEXT), 1, 1) = m.code
-            WHERE
-                d.complaint_number IS NOT NULL
-                AND d.date_entered IS NOT NULL
-                AND d.house_number IS NOT NULL
-                AND d.house_street IS NOT NULL
-                AND d.unit IS NOT NULL
-                AND d.zip_code IS NOT NULL
-                AND d.inspection_date IS NOT NULL;
-            """
-        )
+        # There's no input here so we can run the query defined above
+        duck.execute(transform_query)
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_transformed")
         logging.info(f"{analyst}: Created table: dob_311_transformed")
         logging.info(f"{analyst}: SQL Executed: {transform_query}")

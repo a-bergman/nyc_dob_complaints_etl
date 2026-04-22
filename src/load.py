@@ -93,6 +93,7 @@ def runner():
             comp_resolution,
             comp_category,
             description,
+            action,
             CONCAT(house_number, ' ', house_street) AS address,
             zip,
             bin,
@@ -102,9 +103,14 @@ def runner():
             disp_code,
             disp_description,
             insp_date,
+            CASE WHEN STDDEV_SAMP(days_to_insp) OVER () = 0 
+                 THEN NULL 
+                 ELSE (days_to_insp - AVG(days_to_insp) OVER ()) / STDDEV_SAMP(days_to_insp) OVER ()
+                 END AS zscore,
             days_to_insp
-        FROM transformed.dob_311_transformed
+        FROM trans.dob_311_transformed
         WHERE days_to_insp >= 0
+        QUALIFY ABS(zscore) < 2
     """
     logging.info(f"{analyst}: Loading transformed data from `dob_311_trans.db`")
     with duckdb.connect(CLEAN_DATA) as duck:
@@ -116,30 +122,8 @@ def runner():
         duck.execute(f"ATTACH '{RAW_TRANSFORMED}' AS trans")
         print(f">> [INFO] {analyst} @ {dt_now}: Attaching table: dob_311_transformed")
         logging.info(f"{analyst}: Attaching table: dob_311_transformed")
-        duck.execute(
-            """
-            CREATE TABLE dob_311_clean AS
-                SELECT
-                    id,
-                    borough,
-                    report_date,
-                    comp_resolution,
-                    comp_category,
-                    description,
-                    CONCAT(house_number, ' ', house_street) AS address,
-                    zip,
-                    bin,
-                    community_board,
-                    special_district,
-                    comp_unit,
-                    disp_code,
-                    disp_description,
-                    insp_date,
-                    days_to_insp
-                FROM trans.dob_311_transformed
-                WHERE days_to_insp >= 0
-            """
-        )
+        # There's no input here so we can run the query defined above
+        duck.execute(load_query)
         print(f">> [INFO] {analyst} @ {dt_now}: Created table: dob_311_clean")
         logging.info(f"{analyst}: Created table: dob_311_clean")
         logging.info(f"{analyst}: SQL Executed: {load_query}")
@@ -154,7 +138,7 @@ def runner():
             "SELECT COUNT(*) AS column_count FROM information_schema.columns WHERE table_name = 'dob_311_clean'"
         ).fetchone()[0]
         print(
-            f">> [INFO] {analyst} @ {dt_now}: {rows} rows and {cols} loaded into: dob_311_clean.db"
+            f">> [INFO] {analyst} @ {dt_now}: {rows} rows and {cols} columns loaded into: dob_311_clean.db"
         )
         logging.info(f"{analyst}: {rows} rows and {cols} loaded into: dob_311_clean.db")
 
