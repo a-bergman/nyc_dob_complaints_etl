@@ -10,6 +10,7 @@ import datetime
 import logging
 import os
 
+import altair as alt
 import duckdb as db
 import pandas as pd
 import streamlit as st
@@ -40,7 +41,7 @@ sql_query_1 = """
         ROUND(AVG(days_to_insp)) AS 'Average Response (Days)' 
     FROM dob_311_clean
     GROUP BY borough
-    ORDER BY borough ASC"
+    ORDER BY borough ASC
 """
 
 sql_most_common_comp = f"""
@@ -85,6 +86,49 @@ sql_slowest_insp = f"""
     LIMIT X
 """
 
+sql_zip_most_comp = """
+    SELECT 
+        borough AS Borough,
+        zip AS ZIP,
+        COUNT(id) AS Total
+    FROM dob_311_clean
+    GROUP BY borough,zip
+    ORDER BY Total DESC
+    LIMIT X
+"""
+
+sql_zip_least_comp = """
+    SELECT 
+        borough AS Borough,
+        zip AS ZIP,
+        COUNT(id) AS Total
+    FROM dob_311_clean
+    GROUP BY borough,zip
+    ORDER BY Total ASC
+    LIMIT X
+"""
+
+sql_most_comp_building = """
+    SELECT 
+        address AS 'Street Address',
+        bin AS 'Building ID',
+        COUNT(id) AS Total
+    FROM dob_311_clean
+    GROUP BY bin,address
+    ORDER BY Total DESC
+    LIMIT 10
+"""
+
+sql_action_count = """
+        SELECT 
+            action AS Action,
+            COUNT(action) AS Count,
+            CONCAT(ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2), '%') AS 'Count Percentage'
+        FROM dob_311_clean
+        GROUP BY action
+        ORDER BY count DESC
+"""
+
 ##### Datetime Info ###################################################
 
 # Getting the date in YYYY-MM-DD format &
@@ -110,11 +154,11 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 ##### Streamlit Page Layout ###########################################
 
-st.set_page_config(page_title="311 Pipeline Dashboard", layout="centered")
+st.set_page_config(page_title="311 Pipeline Dashboard", layout="wide")
 
 st.title("NYC DOB 311 Pipeline Dashboard")
 
-st.caption("Run the ETL pipeline and connect to the cleaned database")
+st.caption("Run The ETL Pipeline & Connect To The Cleaned Database")
 
 with st.container(border=True):
     st.subheader("Pipeline Execution")
@@ -203,27 +247,104 @@ with st.container(border=True):
 
             st.subheader("Total Number of Complaints And Mean Response By Borough")
 
-            query_total_avg_resp = con.execute(
-                """SELECT 
-                    borough AS Borough,
-                    COUNT(*) AS Total,
-                   ROUND(AVG(days_to_insp)) AS 'Average Response (Days)' 
-                   FROM dob_311_clean
-                   GROUP BY borough
-                   ORDER BY borough ASC
-                """
-            ).df()
+            # No user input; can use predefined query
+            query_total_avg_resp = con.execute(sql_query_1).df()
             logging.info(
                 f"{analyst}: Calculating total number of complaints and mean response by borough"
             )
             logging.info(f"{analyst}: SQL Executed: {sql_query_1}")
             st.dataframe(query_total_avg_resp, hide_index=True)
+            logging.info(f"{analyst}: Created dataframe of query: query_total_avg_resp")
+
+            ##### SQL Query: Breakdown Of Complaint Action ########################
+
+            st.subheader("Breakdown Of Complaints: Violation Or Not")
+            # No user input; can use predefined query
+            query_action_count = con.execute(sql_action_count).df()
+            logging.info(f"{analyst}: Calculating breakdown of complaint actions")
+            logging.info(f"{analyst}: SQL Executed: {sql_action_count}")
+            color = alt.Color("Action:N", scale=alt.Scale(range=["#1F77B4", "#b45d1f"]))
+            chart = (
+                alt.Chart(query_action_count)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Action:N", sort="-y", axis=alt.Axis(labels=False)),
+                    y=alt.Y("Count:Q"),
+                    color=color,
+                    tooltip=["Action:N", "Count:Q"],
+                )
+            )
+            st.altair_chart(chart, use_container_width=True)
+            logging.info(f"{analyst}: Created bar chart of query: query_action_count")
+
+            ##### SQL Query: Top 10 Most Number Of Complaints Per Zip Code ########
+
+            n = st.slider("Count", 3, 15)
+
+            st.subheader(f"Zip Codes With The {n} Most Complaints")
+
+            query_zip_most_comp = con.execute(
+                f"""
+                SELECT 
+                    borough AS Borough,
+                    zip AS ZIP,
+                    COUNT(id) AS Total
+                FROM dob_311_clean
+                GROUP BY borough,zip
+                ORDER BY Total DESC
+                LIMIT {n}
+                """
+            )
+            logging.info(
+                f"{analyst}: Calculating the zip codes with the {n} most complaints"
+            )
+            logging.info(f"{analyst}: SQL Executed: {sql_zip_most_comp}")
+            st.dataframe(query_zip_most_comp, hide_index=True)
+            logging.info(f"{analyst}: Created dataframe of query: query_zip_most_comp")
+
+            ##### SQL Query: Bottom 10 Least Number Of Complaints Per Zip Code #####
+
+            st.subheader(f"Zip Codes With The {n} Least Complaints")
+
+            query_zip_least_comp = con.execute(
+                f"""
+                SELECT 
+                    borough AS Borough,
+                    zip AS ZIP,
+                    COUNT(id) AS Total
+                FROM dob_311_clean
+                GROUP BY borough,zip
+                ORDER BY Total ASC
+                LIMIT {n}
+                """
+            )
+            logging.info(
+                f"{analyst}: Calculating the zip codes with the {n} most complaints"
+            )
+            logging.info(f"{analyst}: SQL Executed: {sql_zip_least_comp}")
+            st.dataframe(query_zip_least_comp, hide_index=True)
+            logging.info(f"{analyst}: Created dataframe of query: query_zip_least_comp")
+
+            ##### SQL Query: Buildings With The Most Complaints ##################
+
+            st.subheader("Buildings With The Most Complaints")
+
+            # No user input; can use predefined query
+            query_most_comp_building = con.execute(sql_most_comp_building)
+            logging.info(
+                f"{analyst}: Calculating the buildings with the most complaints"
+            )
+            logging.info(f"{analyst}: SQL Executed: {sql_most_comp_building}")
+            st.dataframe(query_most_comp_building, hide_index=True)
+            logging.info(
+                f"{analyst}: Created dataframe of query: query_most_comp_building"
+            )
 
             ##### SQL Query: Most Common Complaints ##############################
 
             st.subheader("Most Common Complaints")
 
-            limit = st.slider("Count", 5, 10)
+            limit = st.slider("Count", 5, 20)
 
             query_most_common_comp = con.execute(
                 f"""
@@ -240,6 +361,9 @@ with st.container(border=True):
             logging.info(f"{analyst}: Calculating the {limit} most common complaints")
             logging.info(f"{analyst}: SQL Executed: {sql_most_common_comp}")
             st.dataframe(query_most_common_comp, hide_index=True)
+            logging.info(
+                f"{analyst}: Created dataframe of query: query_most_common_comp"
+            )
 
             ##### SQL Query: Least Common Complaints ##############################
 
@@ -260,8 +384,11 @@ with st.container(border=True):
             logging.info(f"{analyst}: Calculating the {limit} least common complaints")
             logging.info(f"{analyst}: SQL Executed: {sql_least_common_comp}")
             st.dataframe(query_least_common_comp, hide_index=True)
+            logging.info(
+                f"{analyst}: Created dataframe of query: query_least_common_comp"
+            )
 
-            ##### SQL Query: 10 Fastest Complaints To Inspection ##################
+            ##### SQL Query: N Fastest Complaints To Inspection ##################
 
             st.subheader("Fastest Time To An Inspection Per Complaint")
 
@@ -280,7 +407,7 @@ with st.container(border=True):
             logging.info(f"{analyst}: SQL Executed: {sql_fastest_insp}")
             st.dataframe(query_fastest_insp, hide_index=True)
 
-            ##### SQL Query: 10 Slowest Complaints To Inspection ##################
+            ##### SQL Query: N Slowest Complaints To Inspection ##################
 
             st.subheader("Slowest Time To An Inspection Per Complaint")
 
@@ -298,14 +425,7 @@ with st.container(border=True):
             )
             logging.info(f"{analyst}: SQL Executed: {sql_slowest_insp}")
             st.dataframe(query_slowest_insp, hide_index=True)
-
-            ##### SQL Query: Top Fastest Days To Inspection Per Zip Code ##########
-
-            ##### SQL Query: Bottom Fastest Days To Inspection Per Zip Code #######
-
-            ##### SQL Query: Top 10 Most Number Of Complaints Per Zip Code ########
-
-            ##### SQL Query: Bottom 10 Most Number Of Complaints Per Zip Code #####
+            logging.info(f"{analyst}: Created dataframe of query: query_slowest_insp")
 
         except Exception as ex:
             st.error("Failed to connect to database")
