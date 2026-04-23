@@ -1,3 +1,4 @@
+altair
 datetime
 duckdb
 logging

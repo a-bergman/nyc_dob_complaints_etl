@@ -26,6 +26,8 @@ nyc_dob_complaints_etl/
 
 ## Requirements
 
+`altair`
+
 `datetime`
 
 `duckdb`
@@ -43,7 +45,6 @@ nyc_dob_complaints_etl/
 `time`
 
 `traceback`
-
 
 # Data Source
 
