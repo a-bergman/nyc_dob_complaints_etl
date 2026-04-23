@@ -140,7 +140,9 @@ def runner():
         print(
             f">> [INFO] {analyst} @ {dt_now}: {rows} rows and {cols} columns loaded into: dob_311_clean.db"
         )
-        logging.info(f"{analyst}: {rows} rows and {cols} loaded into: dob_311_clean.db")
+        logging.info(
+            f"{analyst}: {rows} rows and {cols} columns loaded into: dob_311_clean.db"
+        )
 
         duck.close()
         print(f">> [INFO] {analyst} @ {dt_now}: Database saved to: ../data/clean")
