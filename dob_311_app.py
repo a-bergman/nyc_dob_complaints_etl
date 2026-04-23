@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-22
+## Last Updated    : 2026-04-23
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -120,13 +120,32 @@ sql_most_comp_building = """
 """
 
 sql_action_count = """
-        SELECT 
-            action AS Action,
-            COUNT(action) AS Count,
-            CONCAT(ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2), '%') AS 'Count Percentage'
-        FROM dob_311_clean
-        GROUP BY action
-        ORDER BY count DESC
+    SELECT 
+        action AS Action,
+        COUNT(action) AS Count,
+        CONCAT(ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2), '%') AS 'Count Percentage'
+    FROM dob_311_clean
+    GROUP BY action
+    ORDER BY count DESC
+"""
+
+sql_month_agg = """
+    SELECT 
+        DATE_TRUNC('month', report_date) AS Month,
+        COUNT(*) AS Count
+    FROM dob_311_clean
+    WHERE month > '2015-12-31'
+    GROUP BY 1
+    ORDER BY 1
+"""
+
+sql_year_agg = """
+    SELECT 
+        EXTRACT(year FROM report_date) AS Year,
+        COUNT(*) AS Total
+    FROM dob_311_clean
+    GROUP BY 1
+    ORDER BY 1
 """
 
 ##### Datetime Info ###################################################
@@ -143,7 +162,7 @@ dt_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 ##### Defining A Logger ###############################################
 
 logging.basicConfig(
-    filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-streamlit_etl_pipeline-log.log",
+    filename=f"/home/andrew-bergman/Documents/Python Logs/{octo}-{today}@{run_time}-streamlit_app-log.log",
     format="%(levelname)s %(asctime)s :: %(message)s",
     level=logging.INFO,
 )
@@ -197,6 +216,7 @@ def db_connect():
 ##### Run The Pipeline ################################################
 
 if run_clicked:
+    st.cache_data.clear()
     # Basic information about who ran this, when, and where
     logging.info(f"Day............{today} @ {str(datetime.datetime.now())[11:16]}")
     logging.info(f"Analyst........{analyst}")
@@ -243,45 +263,117 @@ with st.container(border=True):
 
             ##### Running Analysis Queries ##################################
 
+            print(f"\n>> [INFO] {analyst} @ {dt_now}: Preparing to run analyses")
+
             ##### SQL Query: Complaints & Mean Response Per Borough #########
 
             st.subheader("Total Number of Complaints And Mean Response By Borough")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating total number of complaints and mean response by borough"
+            )
 
             # No user input; can use predefined query
             query_total_avg_resp = con.execute(sql_query_1).df()
             logging.info(
                 f"{analyst}: Calculating total number of complaints and mean response by borough"
             )
-            logging.info(f"{analyst}: SQL Executed: {sql_query_1}")
+            logging.info(f"{analyst}: SQL Executed & DataFrame created: {sql_query_1}")
             st.dataframe(query_total_avg_resp, hide_index=True)
-            logging.info(f"{analyst}: Created dataframe of query: query_total_avg_resp")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: Breakdown Of Complaint Action ########################
 
             st.subheader("Breakdown Of Complaints: Violation Or Not")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating breakdown of complaint actions"
+            )
+
             # No user input; can use predefined query
             query_action_count = con.execute(sql_action_count).df()
             logging.info(f"{analyst}: Calculating breakdown of complaint actions")
-            logging.info(f"{analyst}: SQL Executed: {sql_action_count}")
-            color = alt.Color("Action:N", scale=alt.Scale(range=["#1F77B4", "#b45d1f"]))
+            logging.info(
+                f"{analyst}: SQL Executed & bar chart created: {sql_action_count}"
+            )
             chart = (
                 alt.Chart(query_action_count)
                 .mark_bar()
                 .encode(
                     x=alt.X("Action:N", sort="-y", axis=alt.Axis(labels=False)),
                     y=alt.Y("Count:Q"),
-                    color=color,
+                    color=alt.Color(
+                        "Action:N", scale=alt.Scale(range=["#1F77B4", "#b45d1f"])
+                    ),
                     tooltip=["Action:N", "Count:Q"],
                 )
             )
-            st.altair_chart(chart, use_container_width=True)
-            logging.info(f"{analyst}: Created bar chart of query: query_action_count")
+            st.altair_chart(chart, width="stretch")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
+
+            ##### SQL Query: Total Complaints By Year #############################
+
+            st.subheader("Total Complaints Per Year")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating total complaints by year"
+            )
+
+            # No user input; can use predefined query
+            query_year_comp = con.execute(sql_year_agg).df()
+            logging.info(f"{analyst}: Calculating the total complaints by year")
+            logging.info(f"{analyst}: SQL Executed & bar chart created: {sql_year_agg}")
+
+            year_chart = (
+                alt.Chart(query_year_comp)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Year:O", title=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y("Total:Q", title=None),
+                    color=alt.Color("Year:O", scale=alt.Scale(scheme="dark2")),
+                )
+                .properties(width=alt.Step(45))
+            )
+            st.altair_chart(year_chart, width="stretch")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
+
+            ##### SQL Query: Monthly Complaint Trends #############################
+
+            st.subheader("Monthly complaint trend")
+            st.text("Monthly aggregation over time")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the monthly complaint trends"
+            )
+
+            # No user input; can use predefined query
+            query_month_comp = con.execute(sql_month_agg).df()
+            logging.info(f"{analyst}: Calculating the monthly complaint trends")
+            logging.info(
+                f"{analyst}: SQL Executed & timeseries line chart created: {sql_month_agg}"
+            )
+            m_chart = (
+                alt.Chart(query_month_comp)
+                .mark_line(color="#b45d1f")
+                .encode(x=alt.X("Month:T", title=None), y=alt.Y("Count:Q", title=None))
+                .properties(height=350)
+            )
+            st.altair_chart(m_chart, width="stretch")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: Top 10 Most Number Of Complaints Per Zip Code ########
 
             n = st.slider("Count", 3, 15)
 
             st.subheader(f"Zip Codes With The {n} Most Complaints")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the zip codes with the {n} most complaints"
+            )
 
             query_zip_most_comp = con.execute(
                 f"""
@@ -298,13 +390,20 @@ with st.container(border=True):
             logging.info(
                 f"{analyst}: Calculating the zip codes with the {n} most complaints"
             )
-            logging.info(f"{analyst}: SQL Executed: {sql_zip_most_comp}")
+            logging.info(
+                f"{analyst}: SQL Executed & DataFrame created: {sql_zip_most_comp}"
+            )
             st.dataframe(query_zip_most_comp, hide_index=True)
-            logging.info(f"{analyst}: Created dataframe of query: query_zip_most_comp")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: Bottom 10 Least Number Of Complaints Per Zip Code #####
 
             st.subheader(f"Zip Codes With The {n} Least Complaints")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the zip codes with the {n} least complaints"
+            )
 
             query_zip_least_comp = con.execute(
                 f"""
@@ -319,32 +418,44 @@ with st.container(border=True):
                 """
             )
             logging.info(
-                f"{analyst}: Calculating the zip codes with the {n} most complaints"
+                f"{analyst}: Calculating the zip codes with the {n} least complaints"
             )
-            logging.info(f"{analyst}: SQL Executed: {sql_zip_least_comp}")
+            logging.info(
+                f"{analyst}: SQL Executed & DataFrame created: {sql_zip_least_comp}"
+            )
             st.dataframe(query_zip_least_comp, hide_index=True)
-            logging.info(f"{analyst}: Created dataframe of query: query_zip_least_comp")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: Buildings With The Most Complaints ##################
 
             st.subheader("Buildings With The Most Complaints")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the buildings with the most complaints"
+            )
 
             # No user input; can use predefined query
             query_most_comp_building = con.execute(sql_most_comp_building)
             logging.info(
                 f"{analyst}: Calculating the buildings with the most complaints"
             )
-            logging.info(f"{analyst}: SQL Executed: {sql_most_comp_building}")
-            st.dataframe(query_most_comp_building, hide_index=True)
             logging.info(
-                f"{analyst}: Created dataframe of query: query_most_comp_building"
+                f"{analyst}: SQL Executed & DataFrame created: {sql_most_comp_building}"
             )
+            st.dataframe(query_most_comp_building, hide_index=True)
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: Most Common Complaints ##############################
 
             st.subheader("Most Common Complaints")
 
             limit = st.slider("Count", 5, 20)
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the {limit} most common complaints"
+            )
 
             query_most_common_comp = con.execute(
                 f"""
@@ -359,15 +470,20 @@ with st.container(border=True):
             """
             )
             logging.info(f"{analyst}: Calculating the {limit} most common complaints")
-            logging.info(f"{analyst}: SQL Executed: {sql_most_common_comp}")
-            st.dataframe(query_most_common_comp, hide_index=True)
             logging.info(
-                f"{analyst}: Created dataframe of query: query_most_common_comp"
+                f"{analyst}: SQL Executed & DataFrame created: {sql_most_common_comp}"
             )
+            st.dataframe(query_most_common_comp, hide_index=True)
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: Least Common Complaints ##############################
 
             st.subheader("Least Common Complaints")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the {limit} least common complaints"
+            )
 
             query_least_common_comp = con.execute(
                 f"""
@@ -382,15 +498,20 @@ with st.container(border=True):
             """
             )
             logging.info(f"{analyst}: Calculating the {limit} least common complaints")
-            logging.info(f"{analyst}: SQL Executed: {sql_least_common_comp}")
-            st.dataframe(query_least_common_comp, hide_index=True)
             logging.info(
-                f"{analyst}: Created dataframe of query: query_least_common_comp"
+                f"{analyst}: SQL Executed & DataFrame created: {sql_least_common_comp}"
             )
+            st.dataframe(query_least_common_comp, hide_index=True)
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: N Fastest Complaints To Inspection ##################
 
             st.subheader("Fastest Time To An Inspection Per Complaint")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the {limit} fastest times to inspection per complaint"
+            )
 
             query_fastest_insp = con.execute(
                 f"""SELECT
@@ -404,12 +525,20 @@ with st.container(border=True):
             logging.info(
                 f"{analyst}: Calculating the {limit} fastest times to inspection per complaint"
             )
-            logging.info(f"{analyst}: SQL Executed: {sql_fastest_insp}")
+            logging.info(
+                f"{analyst}: SQL Executed & DataFrame created: {sql_fastest_insp}"
+            )
             st.dataframe(query_fastest_insp, hide_index=True)
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             ##### SQL Query: N Slowest Complaints To Inspection ##################
 
             st.subheader("Slowest Time To An Inspection Per Complaint")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the {limit} slowest times to inspection per complaint"
+            )
 
             query_slowest_insp = con.execute(
                 f"""SELECT
@@ -421,16 +550,30 @@ with st.container(border=True):
                     LIMIT {limit}"""
             ).df()
             logging.info(
-                f"{analyst}: Calculating the {limit} fastest times to inspection per complaint"
+                f"{analyst}: Calculating the {limit} slowest times to inspection per complaint"
             )
-            logging.info(f"{analyst}: SQL Executed: {sql_slowest_insp}")
+            logging.info(
+                f"{analyst}: SQL Executed & DataFrame created: {sql_slowest_insp}"
+            )
             st.dataframe(query_slowest_insp, hide_index=True)
-            logging.info(f"{analyst}: Created dataframe of query: query_slowest_insp")
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
+
+            logging.info(
+                f"{analyst}: The entire ETL Pipeline and all SQL analyses have all completed successfully"
+            )
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: ETL pipeline and SQL analyses are all complete"
+            )
 
         except Exception as ex:
             st.error("Failed to connect to database")
             st.exception(ex)
             logging.error(f"{analyst}: Failed to connect to `dob_311_clean.db`")
+            print(
+                f">> [ERROR] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: An Error Occurred:  {ex}"
+            )
 
     else:
         st.info(
