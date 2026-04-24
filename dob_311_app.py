@@ -12,7 +12,6 @@ import os
 
 import altair as alt
 import duckdb as db
-import pandas as pd
 import streamlit as st
 
 from pathlib import Path
@@ -34,14 +33,28 @@ CLEAN_DATA = PROJECT_ROOT / "data" / "cleaned" / "dob_311_clean.db"
 
 ##### Analysis Queries ################################################
 
+
+# Source of population numbers for `sql_query_1`:
+# https://www.nyc.gov/assets/planning/downloads/pdf/our-work/reports/new-york-city-population-estimates-and-trends_may-2025.pdf
+
+
 sql_query_1 = """
+    WITH borough_pop_2024 AS (SELECT * FROM (VALUES
+                                                ('Manhattan', 1660664),
+                                                ('Brooklyn', 2617631),
+                                                ('Queens', 2316841),
+                                                ('Bronx', 1384724),
+                                                ('Staten Island', 498212)) AS t(borough, population))
     SELECT 
-        borough AS Borough,
+        c.borough AS Borough,
         COUNT(*) AS Total,
-        ROUND(AVG(days_to_insp)) AS 'Average Response (Days)' 
-    FROM dob_311_clean
-    GROUP BY borough
-    ORDER BY borough ASC
+        ROUND(COUNT(*) * 100000.0 / p.population, 2) AS "Complaints Per 100k",
+        ROUND(AVG(days_to_insp)) AS 'Average Response (Days)'
+    FROM dob_311_clean as c
+    JOIN borough_pop_2024 p
+        ON c.borough = p.borough
+    GROUP BY c.borough, p.population
+    ORDER BY c.borough ASC
 """
 
 sql_most_common_comp = f"""
@@ -148,6 +161,25 @@ sql_year_agg = """
     ORDER BY 1
 """
 
+sql_df_insp_time = """
+    SELECT
+        borough AS Borough,
+        quantile_cont(days_to_insp, 0.25) AS 'P25%',
+        quantile_cont(days_to_insp, 0.5)  AS Median,
+        quantile_cont(days_to_insp, 0.75) AS 'P75%',
+        quantile_cont(days_to_insp, 0.9)  AS 'P90%'
+    FROM dob_311_clean
+    GROUP BY borough
+    ORDER BY borough
+"""
+
+sql_box_insp_time = """
+    SELECT
+        borough AS Borough,
+        days_to_insp AS 'Response Time',
+    FROM dob_311_clean
+"""
+
 ##### Datetime Info ###################################################
 
 # Getting the date in YYYY-MM-DD format &
@@ -224,17 +256,17 @@ if run_clicked:
         f"Script Run.....dob_311_app.py: dob_etl_runner.pipeline_runner(), extract.runner(), transform.runner(), load.runner()"
     )
     logging.info(f"Directory......{os.getcwd()} \n")
-    logging.info(f"{analyst}: Ready to execute the pipeline")
+    logging.info(f"{analyst}: Ready to execute the pipeline \n")
     with st.status("Running ETL pipeline...", expanded=True) as status:
         try:
-            st.write("Starting pipeline...")
+            st.write("Starting pipeline... \n")
             logging.info(f"{analyst}: Beginning to execute the pipeline \n")
             run_etl()
 
             st.session_state.etl_success = True
 
             st.write("Pipeline completed successfully!")
-            logging.info(f"{analyst}: Completed the pipeline successfully")
+            logging.info(f"{analyst}: Completed the pipeline successfully \n")
             status.update(label="Pipeline complete", state="complete")
 
             st.success("ETL finished successfully")
@@ -258,28 +290,82 @@ with st.container(border=True):
             con = db_connect()
             st.success("Connected to `dob_311_clean.db`")
             st.write("Database is ready for queries and analysis")
-            logging.info(f"{analyst}: Connected to `dob_311_clean.db` \n")
+            logging.info(f"{analyst}: Connected to `dob_311_clean.db`")
             logging.info(f"{analyst}: Preparing to run analysis queries \n")
 
             ##### Running Analysis Queries ##################################
 
             print(f"\n>> [INFO] {analyst} @ {dt_now}: Preparing to run analyses")
 
-            ##### SQL Query: Complaints & Mean Response Per Borough #########
+            ##### SQL Query: Complaints, Complaints Per 100k, & Mean Response Per Borough #########
 
-            st.subheader("Total Number of Complaints And Mean Response By Borough")
+            st.subheader(
+                "Total Number of Complaints, Complaints Per 100k, And Mean Response By Borough"
+            )
 
             print(
-                f">> [INFO] {analyst} @ {dt_now}: Calculating total number of complaints and mean response by borough"
+                f">> [INFO] {analyst} @ {dt_now}: Calculating total number of complaints, complaints per 100k, and mean response by borough"
             )
 
             # No user input; can use predefined query
             query_total_avg_resp = con.execute(sql_query_1).df()
             logging.info(
-                f"{analyst}: Calculating total number of complaints and mean response by borough"
+                f"{analyst}: Calculating total number of complaints, complaints per 100k, and mean response by borough"
             )
             logging.info(f"{analyst}: SQL Executed & DataFrame created: {sql_query_1}")
             st.dataframe(query_total_avg_resp, hide_index=True)
+
+            print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
+
+            ##### SQL Query: Quartiles Of Complaint Response Times By Borough #####
+
+            st.subheader("Median and 90th Percentile Of Days To Inspection")
+
+            print(
+                f">> [INFO] {analyst} @ {dt_now}: Calculating the 25th, Median, 75th, and 90% percentiles of days to ispection"
+            )
+            # No user input; can use predefined query
+            query_df_response = con.execute(sql_df_insp_time).df()
+            query_box_response = con.execute(sql_box_insp_time).df()
+            logging.info(
+                f"{analyst}: Calculating the 25th, Median, 75th, and 90% percentiles of days to ispection"
+            )
+            logging.info(
+                f"{analyst}: SQL Executed & DataFrame created: {sql_df_insp_time}"
+            )
+            logging.info(
+                f"{analyst}: SQL Executed & box plot created: {sql_box_insp_time}"
+            )
+            # box plot for easy visuals
+            box = (
+                alt.Chart(query_box_response)
+                .mark_boxplot(extent="min-max")
+                .encode(
+                    alt.Y("Borough:N"),
+                    alt.X("Response Time:Q").scale(zero=False),
+                    alt.Color(
+                        "Borough:N",
+                        scale=alt.Scale(
+                            range=[
+                                "#1F77B4",
+                                "#b45d1f",
+                                "#5d1fb4",
+                                "#B41F76",
+                                "#1FB45D",
+                            ]
+                        ),
+                    ),
+                )
+                .properties(height=350, title=" ")
+                .configure(background="#FAFAFA")
+                .configure_axis(labelColor="black", titleColor="black")
+                .configure_legend(labelColor="black", titleColor="black")
+            )
+            # Box plot for easy viewing
+            st.altair_chart(box, width="stretch")
+
+            # DataFrame for specifics
+            st.dataframe(query_df_response, hide_index=True)
 
             print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
@@ -560,11 +646,11 @@ with st.container(border=True):
             print(f">> [INFO] {analyst} @ {dt_now}: Calculation completed successfully")
 
             logging.info(
-                f"{analyst}: The entire ETL Pipeline and all SQL analyses have all completed successfully"
+                f"\n {analyst}: The entire ETL Pipeline and all SQL analyses have all completed successfully"
             )
 
             print(
-                f">> [INFO] {analyst} @ {dt_now}: ETL pipeline and SQL analyses are all complete"
+                f"\n >> [INFO] {analyst} @ {dt_now}: ETL pipeline and SQL analyses are all complete"
             )
 
         except Exception as ex:
