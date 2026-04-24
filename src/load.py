@@ -110,6 +110,7 @@ def runner():
             days_to_insp
         FROM trans.dob_311_transformed
         WHERE days_to_insp >= 0
+            AND days_to_insp <= 365
         QUALIFY ABS(zscore) < 2
     """
     logging.info(f"{analyst}: Loading transformed data from `dob_311_trans.db`")
