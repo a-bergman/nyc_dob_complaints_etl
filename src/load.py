@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-22
+## Last Updated    : 2026-04-27
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -9,11 +9,10 @@
 import datetime
 import duckdb
 import logging
-import os
 import traceback
-import time
-import pandas as pd
+
 import tabulate as tb
+
 from pathlib import Path
 
 ##### User Analyst #####
@@ -31,30 +30,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLEAN_DATA = PROJECT_ROOT / "data" / "cleaned" / "dob_311_clean.db"
 
 RAW_TRANSFORMED = PROJECT_ROOT / "data" / "raw" / "dob_311_trans.db"
-
-##### Helper Function #####
-
-
-def generate_table(data, headers):
-    """
-    Parameters:
-    -----------
-    headers : list of str column header names for the table : list : :
-    data    : list of var data to be included in the table  : list : :
-
-    Description:
-    ------------
-    Takes the formatted measure statements from the above functions and creates a table for display
-
-    Returns:
-    A formatted table in the command line showing the values extracted from the JSON object
-    """
-    print(tb.tabulate(data, headers=headers, tablefmt="outline"))
-
-
-##### Runner Function #####
-
-start_time = time.perf_counter()
 
 
 def runner():
@@ -154,19 +129,15 @@ def runner():
         logging.info(f"{analyst}: Closing connection table: dob_311_clean")
 
 
-end_time = time.perf_counter()
-elapsed_time = end_time - start_time
-
-
 # Running the transform runner
 if __name__ == "__main__":
     try:
         runner()
         # need a better way to do the time
         print(
-            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `load.runner()` ran in {round(elapsed_time,5)} seconds"
+            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `load.runner()` completed successfully"
         )
-        logging.info(f"{analyst}: `load.runner()` ran in {elapsed_time} seconds")
+        logging.info(f"{analyst}: `load.runner()` completed successfully")
     # Catches any error that crops up; bare `except` clauses are discouraged
     except Exception as ex:
         logging.error(traceback.format_exc())

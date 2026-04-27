@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-21
+## Last Updated    : 2026-04-27
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -9,9 +9,7 @@
 import datetime
 import duckdb
 import logging
-import os
 import traceback
-import time
 
 import pandas as pd
 
@@ -36,10 +34,6 @@ RAW_EXTRACT = PROJECT_ROOT / "data" / "raw" / "dob_311_trans.db"
 RAW_BOROUGH = PROJECT_ROOT / "data" / "raw" / "borough_map.db"
 
 DESC_PATH = PROJECT_ROOT / "data" / "raw" / "nyc_311_dob_comp_codes.csv"
-
-##### Runner Function #####
-
-start_time = time.perf_counter()
 
 
 def runner():
@@ -162,18 +156,15 @@ def runner():
     logging.info(f"{analyst}: Closing connection table: dob_311_transformed")
 
 
-end_time = time.perf_counter()
-elapsed_time = end_time - start_time
-
 # Running the transform runner
 if __name__ == "__main__":
     try:
         runner()
         # need a better way to do the time
         print(
-            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `transform.runner()` ran in {elapsed_time} seconds"
+            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `transform.runner()` completed successfully"
         )
-        logging.info(f"{analyst}: `transform.runner()` ran in {elapsed_time} seconds")
+        logging.info(f"{analyst}: `transform.runner()` completed successfully")
     # Catches any error that crops up; bare `except` clauses are discouraged
     except Exception as ex:
         logging.error(traceback.format_exc())

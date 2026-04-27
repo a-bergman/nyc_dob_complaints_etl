@@ -1,4 +1,4 @@
-## Last Updated    : 2026-04-21
+## Last Updated    : 2026-04-27
 ## Last Updated By : andrew-bergman
 ## Project Version : 1.0
 
@@ -6,13 +6,14 @@
 # Logs stored in: Windows : N/A
 # Logs stored in: Linux   : `/home/andrew-bergman/Documents/Python Logs`
 
+import datetime
+import logging
 import os
 import traceback
-import logging
-import datetime
-import time
+
 import pandas as pd
 import requests as rq
+
 from pathlib import Path
 
 ##### User Analyst #####
@@ -51,10 +52,6 @@ RAW_EXTRACT = PROJECT_ROOT / "data" / "raw" / "dob_311_extract.csv"
 DESC_PATH = PROJECT_ROOT / "data" / "raw" / "nyc_311_dob_comp_codes.csv"
 
 BIS_PATH = PROJECT_ROOT / "data" / "raw" / "bis_complaint_disposition_codes.csv"
-
-##### Runner Function #####
-
-start_time = time.perf_counter()
 
 
 def runner():
@@ -182,17 +179,14 @@ def runner():
     logging.info(f"{analyst}: `dob_311_extract.csv` saved in: /{raw_dir}/")
 
 
-end_time = time.perf_counter()
-elapsed_time = end_time - start_time
-
 # Running the extract runner
 if __name__ == "__main__":
     try:
         runner()
         print(
-            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `extract.runner()` ran in {elapsed_time} seconds"
+            f">> [INFO] {analyst} @ {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: `extract.runner()` completed successfully"
         )
-        logging.info(f"{analyst}: `extract.runner()` ran in {elapsed_time} seconds")
+        logging.info(f"{analyst}: `extract.runner()` completed successfully")
     # Catches any error that crops up; bare `except` clauses are discouraged
     except Exception as ex:
         logging.error(traceback.format_exc())
