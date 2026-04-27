@@ -17,7 +17,7 @@ nyc_dob_complaints_etl/
 │  ├─ load.py                                # Loads clean data into DuckDB table
 ├─ .gitignore
 ├─ README.md
-├─ dob_311_app.py                            # Streamlit app to run pipeline and perform analyses
+├─ application.py                            # Streamlit app to run pipeline and perform analyses
 ├─ data_dictionary.md                        # Description of data layout from NYC Open Data
 ├─ NYC_DoB_311_Complaint_Codes_Dictionary.md # Descriptions of NYC DoB Complaint Codes
 ```
