@@ -24,28 +24,37 @@ nyc_dob_complaints_etl/
 
 ## Description
 
-## Requirements
+This is a simple ETL pipe that extracts, manipulates, and loads data from NYC DoB Complaints to a Streamlit dashboard which runs in a series of steps:
 
-`altair`
+1. Extracts data, maps descriptions to two ID columns, and saves the output to a .csv file;
+2. Transforms the data in a DuckDB database using with SQL to transform, add, and clean the data;
+3. Loads a subset of the clean data into another DuckDB database from which the Streamlit app selects;
+4. Launches a Streamlit app that provides complaint statistics calculated using SQL.
 
-`datetime`
+## Using The App
 
-`duckdb`
+### On Linux
 
-`logging`
+```
+1. Clone the repository using SSH
+2. Navigate to the main folder: cd nyc_dob_complaints_etl
+3. Launch a virtual environment: python3 -m venv venv
+4. Activate the virtual environment . venv/bin/activate
+5. Install requirements: pip install -r requirements.txt
+6. Launch the application: streamlit run application.py 
+```
 
-`os`
+### On Windows
 
-`pandas`
+```
+1. Clone the repository using SSH
+2. Navigate to the main folder: cd nyc_dob_complaints_etl
+3. Launch a virtual environment: python3 -m venv venv
+4. Activate the virtual environment .venv\Scripts\activate
+5. Install requirements: pip install -r requirements.txt
+6. Launch the application: streamlit run application.py 
+```
 
-`requests`
-
-`streamlit`
-
-`time`
-
-`traceback`
-
-# Data Source
+## Data Source
 
 The [data](https://data.cityofnewyork.us/Housing-Development/DOB-Complaints-Received/eabe-havv/about_data) for this project comes from NYC's Open Data [portal](https://opendata.cityofnewyork.us/).
