@@ -33,6 +33,8 @@ This is a simple ETL pipe that extracts, manipulates, and loads data from NYC Do
 
 ## Using The App
 
+NB: Each `.py` file creates a log entry when executed. Currently, the scripts point to a location that is not within this directory to avoid having to commit each log everytime this is run. Therefore you must hardcode a path before running this code otherwise it will fail.
+
 ### On Linux
 
 ```
